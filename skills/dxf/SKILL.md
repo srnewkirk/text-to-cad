@@ -13,18 +13,26 @@ repository link is only for provenance and release review.
 
 Create or modify 2D DXF drawings from natural-language requirements or from CAD geometry, generate validated drawing artifacts, and return checked outputs. A DXF drawing's source of truth is a dedicated Python generator file named `<name>.dxf.py` defining `gen_dxf()`; the CLI owns output paths.
 
-The default build product is the **drawing package** — a render artifact the CAD Viewer serves and auto-regenerates:
+The default build product is the **drawing package** — a render artifact the CAD Viewer serves and auto-regenerates. Its payloads depend on the DXF profile:
 
 ```
 <model-folder>/__cadgen__/models/<name>.dxf.py/
-  drawing.json    # provenance + freshness descriptor
-  drawing.dxf     # the built DXF (the exchange artifact)
-  preview.glb     # the baked 3D flat pattern (what the viewer renders)
+  drawing.json    # provenance + freshness descriptor for every profile
+  geometry.json   # parsed 2D geometry for every profile
+  preview.glb     # cut profiles only: baked 3D flat pattern
 ```
 
-`preview.glb` is baked from `drawing.dxf` by a Node child of the build, inside the same
-generation lock, so a build produces both payloads or neither. It needs `node` on PATH (or
-`CADGEN_NODE`).
+A cut profile gets `preview.glb`, baked by a Node child inside the generation lock. A
+dimensioned technical drawing has no flat pattern to extrude and intentionally omits
+`preview.glb`; CAD Viewer renders its `geometry.json` directly. The Node builder needs
+`node` on PATH (or `CADGEN_NODE`).
+
+The file must positively identify a technical drawing with real DXF apparatus: at least one
+DIMENSION/LEADER entity, paper-space viewport, or paper-space title-block entity. Layer names
+such as `DIMENSION_REFERENCE` allow open drawing geometry but do not by themselves classify
+the document as a technical drawing. A file containing only reference/bend/engrave geometry,
+with neither drawing apparatus nor a closed cut profile, fails generation before preview
+packaging with an actionable `ambiguous_drawing_profile` error.
 
 The sibling `<name>.dxf` file is written **on demand only** (`--write`, `-o`, or a `SOURCE=OUTPUT` pair) for deliverables handed to cutting services or other tools. An exported `.dxf` is a point-in-time deliverable, totally detached from its generator: rebuilds never delete, rewrite, or staleness-track it (same as an exported STEP file) — re-export when you want it refreshed. Do not commit generated `.dxf` outputs; the package cache is gitignored and rebuilt on demand.
 
@@ -109,20 +117,22 @@ python scripts/artifact path/to/imported.dxf
 python scripts/artifact path/to/source.dxf.py --force
 ```
 
-That builds the same hidden `__cadgen__` drawing package the CAD Viewer builds on
-demand — the drawing DXF plus the 3D `preview.glb` the viewport renders — and accepts
-either source kind, so it is also how you debug a generated drawing's package build.
+That builds the same hidden `__cadgen__` drawing package the CAD Viewer builds on demand —
+parsed `geometry.json` for every DXF and, for cut profiles, the 3D `preview.glb` the viewport
+renders — so it is also how you debug a generated drawing's package build.
 Flags: `--write PATH` (also write the package's drawing DXF there), `--force`,
 `--verbose`.
 
-`scripts/snapshot` renders a drawing's 3D flat pattern to a PNG still or an orbit GIF:
+`scripts/snapshot` renders a cut profile's 3D flat pattern to a PNG still or an orbit GIF:
 
 ```bash
 python scripts/snapshot --input path/to/imported.dxf --output review.png
 python scripts/snapshot --input path/to/source.dxf.py --output turntable.gif --mode orbit
 ```
 
-It builds/refreshes the drawing package first, then renders that package's `preview.glb`
+It builds/refreshes the cut-profile package first, then renders that package's `preview.glb`.
+A dimensioned technical drawing intentionally has no `preview.glb`; review it in CAD Viewer,
+which renders the package's parsed 2D geometry directly. Cut-profile snapshots continue
 through the shared snapshot CLI (`cadgen.snapshot_cli`) and the same headless browser
 runtime every rendering skill uses — so geometry and materials render identically to the CAD
 Viewer; the default `snapshot` theme differs from the viewport only by dropping the grid,

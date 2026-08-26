@@ -6,16 +6,14 @@ the model folder's ``__cadgen__/models/``, keyed by the entry filename:
 
     <model-folder>/__cadgen__/models/<name>.dxf.py/
       drawing.json    # descriptor: provenance + freshness metadata
-      drawing.dxf     # the drawing itself (exchange artifact)
-      preview.glb     # the baked 3D flat pattern (render artifact)
+      geometry.json   # parsed 2D geometry
+      preview.glb     # cut profiles only: baked 3D flat pattern
 
-**Two payloads with different jobs.** ``drawing.dxf`` is the exchange artifact (exported,
-downloaded, re-imported); ``preview.glb`` is what the viewport renders. The GLB is not an
-optimization: with the 2D SVG view deleted, the 3D mesh is the ONLY DXF view, and baking it
-here is what lets the browser stop carrying ~1,800 lines of DXF parsing and extrusion.
-It is built by a Node child of whichever
-process holds this package's generation lock, because the mesher is JS and is reused verbatim
-rather than reimplemented.
+**Profile-specific payloads.** Every DXF package carries parsed ``geometry.json``. A cut
+profile also carries ``preview.glb``, the baked flat-pattern prism. A dimensioned drawing has
+no flat pattern and intentionally omits the GLB; the viewer draws its parsed 2D geometry.
+The generated DXF remains reproducible from its source and is exported on demand rather than
+cached in the package. Payloads are built by a Node child holding the package generation lock.
 
 The descriptor carries the same provenance the assembly package records
 (``sourceKind``/``sourcePath``/``sourceHash``/``sourceClosureHash``/``sourceClosureFiles``/

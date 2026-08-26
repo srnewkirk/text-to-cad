@@ -7,7 +7,7 @@ import { spawn } from "node:child_process";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-import { cadPythonExecutable, cadPythonEnv } from "./cad-python.mjs";
+import { cadPythonExecutable, cadPythonEnv, pythonLaunchFailureMessage } from "./cad-python.mjs";
 import { resolveDirectoryRoot } from "./directoryRoot.mjs";
 
 const viewerRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
@@ -34,6 +34,6 @@ child.on("exit", (code, signal) => {
   process.exit(code ?? 1);
 });
 child.on("error", (error) => {
-  process.stderr.write(`Failed to start Python CAD Viewer launcher: ${error.message}\n`);
+  process.stderr.write(`${pythonLaunchFailureMessage(python, error)}\n`);
   process.exit(1);
 });

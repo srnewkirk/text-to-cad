@@ -235,6 +235,32 @@ class DrawingDetectionTest(unittest.TestCase):
         self.assertFalse(is_drawing)
         self.assertEqual("", evidence)
 
+    def test_reference_only_geometry_fails_before_preview_packaging(self) -> None:
+        document = ezdxf.new("R2010", setup=True)
+        document.units = ezdxf.units.MM
+        document.layers.add("DIMENSION_REFERENCE")
+        document.modelspace().add_line(
+            (0, 0), (100, 0), dxfattribs={"layer": "DIMENSION_REFERENCE"}
+        )
+
+        findings = validate_drawing_document(document)
+        errors = [finding for finding in findings if finding.severity == "error"]
+        self.assertEqual(["ambiguous_drawing_profile"], [finding.code for finding in errors])
+        self.assertIn("dimensions, leaders, or paper-space", errors[0].message)
+
+    def test_reference_only_geometry_with_paper_space_is_a_drawing(self) -> None:
+        document = ezdxf.new("R2010", setup=True)
+        document.units = ezdxf.units.MM
+        document.layers.add("DIMENSION_REFERENCE")
+        document.modelspace().add_line(
+            (0, 0), (100, 0), dxfattribs={"layer": "DIMENSION_REFERENCE"}
+        )
+        document.layout("Layout1").add_text("TECHNICAL DRAWING", height=5)
+
+        findings = validate_drawing_document(document)
+        self.assertEqual([], [finding for finding in findings if finding.severity == "error"])
+        self.assertIn("drawing_document", [finding.code for finding in findings])
+
     def test_paper_space_geometry_counts_as_apparatus(self) -> None:
         document = ezdxf.new("R2010", setup=True)
         document.units = ezdxf.units.MM

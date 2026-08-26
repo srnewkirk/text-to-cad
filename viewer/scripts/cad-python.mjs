@@ -100,3 +100,12 @@ export function cadPythonEnv() {
     ...(pythonPathEntries.length ? { PYTHONPATH: pythonPathEntries.join(path.delimiter) } : {}),
   };
 }
+
+export function pythonLaunchFailureMessage(python, error) {
+  const detail = error instanceof Error ? error.message : String(error || "unknown error");
+  return [
+    `Failed to start Python CAD Viewer launcher with ${python}: ${detail}`,
+    "Set VIEWER_CAD_PYTHON to an absolute Python executable with the Viewer CAD requirements installed.",
+    "CAD_PYTHON is accepted as a legacy alias; CADGEN_PYTHON does not select the Viewer interpreter.",
+  ].join("\n");
+}

@@ -336,6 +336,7 @@ def validate_drawing_document(document: object) -> list[DrawingFinding]:
 
     modelspace = document.modelspace()
     geometry_count = 0
+    cut_geometry_count = 0
     seen_signatures: set[tuple] = set()
     open_curves_by_cut_layer: dict[str, list] = {}
     for entity in modelspace:
@@ -344,6 +345,10 @@ def validate_drawing_document(document: object) -> list[DrawingFinding]:
             continue
         geometry_count += 1
         layer = _entity_layer(entity)
+        declared_intent = declared_layer_intents.get(layer)
+        effective_intent = declared_intent if declared_intent is not None else layer_intent(layer)
+        if not is_drawing and effective_intent == "cut":
+            cut_geometry_count += 1
 
         zero_length = _zero_length_finding(entity)
         if zero_length is not None:
@@ -363,9 +368,7 @@ def validate_drawing_document(document: object) -> list[DrawingFinding]:
                 continue
             seen_signatures.add(signature)
 
-        if is_drawing or declared_layer_intents.get(layer, "cut") != "cut":
-            continue
-        if layer_allows_open_geometry(layer):
+        if is_drawing or effective_intent != "cut":
             continue
         if kind == "LWPOLYLINE":
             if not _is_effectively_closed_polyline(entity):
@@ -389,6 +392,17 @@ def validate_drawing_document(document: object) -> list[DrawingFinding]:
     if geometry_count == 0:
         findings.append(
             DrawingFinding("error", "empty_drawing", "modelspace contains no geometry entities")
+        )
+    elif not is_drawing and cut_geometry_count == 0:
+        findings.append(
+            DrawingFinding(
+                "error",
+                "ambiguous_drawing_profile",
+                "modelspace contains only bend/engrave/reference geometry, but the DXF has "
+                "no dimensions, leaders, or paper-space content identifying a technical "
+                "drawing and no cut-profile geometry to preview; add real drawing apparatus "
+                "for a technical drawing or put closed fabrication contours on a CUT layer",
+            )
         )
     return findings
 
