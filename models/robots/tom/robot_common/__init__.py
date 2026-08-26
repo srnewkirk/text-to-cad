@@ -1,1 +1,0 @@
-"""Shared CAD generator helpers."""
