@@ -3,11 +3,11 @@
   "version": "0.4.29",
   "description": "CAD, robotics, fabrication, and local review skills packaged for agent plugin installs.",
   "author": {
-    "name": "earthtojake",
-    "url": "https://github.com/earthtojake"
+    "name": "srnewkirk",
+    "url": "https://github.com/srnewkirk"
   },
   "homepage": "https://www.texttocad.dev",
-  "repository": "https://github.com/earthtojake/text-to-cad",
+  "repository": "https://github.com/srnewkirk/text-to-cad",
   "license": "MIT",
   "keywords": [
     "cad",
@@ -24,7 +24,7 @@
     "displayName": "text-to-cad",
     "shortDescription": "CAD, robotics, fabrication, and local review skills.",
     "longDescription": "text-to-cad packages local agent workflows for generating CAD, inspecting models, sourcing STEP parts, writing robot description files, slicing mesh files, and preparing fabrication handoffs.",
-    "developerName": "earthtojake",
+    "developerName": "srnewkirk",
     "category": "Productivity",
     "capabilities": [
       "Write",
