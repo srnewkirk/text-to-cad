@@ -101,6 +101,49 @@ def _selector_artifact(*occurrence_ids: str) -> SimpleNamespace:
 
 
 class SnapshotCliTests(unittest.TestCase):
+    def test_windows_entrypoint_runs_snapshot_in_isolated_worker(self) -> None:
+        completed = subprocess.CompletedProcess([], 0)
+        with (
+            mock.patch.object(cad_snapshot_entry.os, "name", "nt"),
+            mock.patch.dict(cad_snapshot_entry.os.environ, {}, clear=True),
+            mock.patch.object(cad_snapshot_entry.subprocess, "run", return_value=completed) as run,
+        ):
+            self.assertEqual(0, cad_snapshot_entry.entrypoint(["--input", "part.step"]))
+
+        command = run.call_args.args[0]
+        self.assertEqual(sys.executable, command[0])
+        self.assertEqual(Path(cad_snapshot_entry.__file__).resolve().parent, Path(command[1]))
+        self.assertEqual(["--input", "part.step"], command[2:])
+        self.assertEqual("1", run.call_args.kwargs["env"][cad_snapshot_entry._WORKER_ENV])
+        self.assertFalse(run.call_args.kwargs["check"])
+
+    def test_windows_worker_access_violation_has_durable_diagnostic(self) -> None:
+        completed = subprocess.CompletedProcess([], 0xC0000005)
+        stderr = io.StringIO()
+        with (
+            mock.patch.object(cad_snapshot_entry.subprocess, "run", return_value=completed),
+            mock.patch.object(cad_snapshot_entry.sys, "stderr", stderr),
+        ):
+            self.assertEqual(1, cad_snapshot_entry._run_isolated([]))
+
+        diagnostic = stderr.getvalue()
+        self.assertIn("0xC0000005", diagnostic)
+        self.assertIn("access violation", diagnostic)
+        self.assertIn("Windows Error Reporting", diagnostic)
+        self.assertIn("No snapshot was produced", diagnostic)
+
+    def test_windows_worker_sentinel_prevents_recursive_launcher(self) -> None:
+        with (
+            mock.patch.object(cad_snapshot_entry.os, "name", "nt"),
+            mock.patch.dict(cad_snapshot_entry.os.environ, {cad_snapshot_entry._WORKER_ENV: "1"}),
+            mock.patch.object(cad_snapshot_entry, "main", return_value=7) as main,
+            mock.patch.object(cad_snapshot_entry, "_run_isolated") as isolated,
+        ):
+            self.assertEqual(7, cad_snapshot_entry.entrypoint(["--help"]))
+
+        main.assert_called_once_with(["--help"])
+        isolated.assert_not_called()
+
     def test_cli_import_does_not_import_heavy_cad_modules(self) -> None:
         skill_root = repo_path("skills/cad")
         code = (
