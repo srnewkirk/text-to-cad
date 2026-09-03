@@ -3,6 +3,25 @@
 This repo is a workbench for CAD-related agent skills. Treat `skills/` as the
 product and `models/` as the shared fixture/artifact area.
 
+## Fork-Only Authorization Boundary
+
+- This checkout is maintained for `srnewkirk/text-to-cad`, and local Codex
+  installations must resolve to this checkout or artifacts published from that
+  fork.
+- Treat `earthtojake/text-to-cad` and every other community repository as
+  read-only reference material unless the user explicitly authorizes a specific
+  external action.
+- Do not open or update upstream pull requests, push upstream branches or tags,
+  create upstream issues or releases, dispatch upstream workflows, or otherwise
+  publish outside `srnewkirk/text-to-cad` without explicit user authorization
+  naming the destination and action.
+- Permission to commit, push, promote, release, or install in this project means
+  the user's fork only. It never implies permission to contact or modify the
+  upstream community project.
+- Before any installation, verify and report that the source is the user's fork
+  checkout or a release from that fork. Do not silently substitute an upstream
+  release or plugin package.
+
 ## Branch And Layout First
 
 Before changing code, branch from `develop`, not `main`; PRs should target `develop`.
