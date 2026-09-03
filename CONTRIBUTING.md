@@ -9,7 +9,7 @@ fixture/artifact area.
 For development, branch from `develop` and open PRs back to `develop`:
 
 ```bash
-git clone --branch develop https://github.com/earthtojake/text-to-cad.git
+git clone --branch develop https://github.com/srnewkirk/text-to-cad.git
 cd text-to-cad
 git switch -c my-change
 ```
@@ -227,8 +227,18 @@ is wrong.
 
 ### Shipping a release
 
-Run the `Release` GitHub Actions workflow. Its defaults are the real-release
-settings — build from `develop` (`base_branch=develop`), publish to `main`
+> **Personal-fork policy:** In `srnewkirk/text-to-cad`, the installable CAD
+> plugin is released through `srnewkirk/codex-plugin-marketplace` and installed
+> as `cad@homelab-plugins`. Do not run the `Release` workflow described below as
+> the default personal release path. That workflow is inherited community
+> machinery and is retained only as implementation/reference material unless
+> the user explicitly authorizes its exact PyPI, docs, mirror, tag, and GitHub
+> Release effects. See `AGENTS.md` and the marketplace repository's
+> `docs/release-process.md` for the authoritative personal workflow.
+
+The upstream community project runs the `Release` GitHub Actions workflow. Its
+defaults are the community-release settings — build from `develop`
+(`base_branch=develop`), publish to `main`
 (`target_branch=main`), and publish the GitHub Release (`publish=true`, not a
 draft) — and the input descriptions in `.github/workflows/release.yml` are
 authoritative. Choose the semver bump (`patch`, `minor`, or `major`) or an
