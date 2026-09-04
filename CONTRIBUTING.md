@@ -158,9 +158,10 @@ powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\check-wind
 
 The production bundler uses `rsync` for exact tree mirroring, stale-file
 deletion, exclusions, and conversion of development symlinks into ordinary
-release files. Git for Windows includes Bash but not `rsync`; do not mix that
-Bash with an `rsync.exe` copied from a different POSIX runtime. Use a single
-MSYS2 installation for Bash and `rsync`, and invoke the commands below through
+release files; its freshness checks use GNU `diff` and `cmp`. Git for Windows
+does not supply the complete toolset; do not mix its Bash with executables
+copied from a different POSIX runtime. Use a single MSYS2 installation for Bash,
+`rsync`, and `diffutils`, and invoke the commands below through
 the exact MSYS2 Bash path printed by the check. If the dependency is absent,
 install it locally with explicit approval rather than moving the build to
 another computer.

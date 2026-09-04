@@ -32,11 +32,11 @@ if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($msysNodeDirectory)) {
     throw "MSYS2 could not translate the Node.js directory: $nodeDirectory"
 }
 
-$shellCheck = 'set -euo pipefail; export PATH="$PATH:{0}"; command -v bash | grep -Fx /usr/bin/bash; command -v rsync | grep -Fx /usr/bin/rsync; rsync --version | head -n 1; command -v node; node --version; command -v npm; npm --version' -f $msysNodeDirectory
+$shellCheck = 'set -euo pipefail; export PATH="$PATH:{0}"; command -v bash | grep -Fx /usr/bin/bash; command -v rsync | grep -Fx /usr/bin/rsync; command -v diff | grep -Fx /usr/bin/diff; command -v cmp | grep -Fx /usr/bin/cmp; rsync --version | head -n 1; diff --version | head -n 1; cmp --version | head -n 1; command -v node; node --version; command -v npm; npm --version' -f $msysNodeDirectory
 
 & $bashPath @("-lc", $shellCheck)
 if ($LASTEXITCODE -ne 0) {
-    throw "MSYS2 Bash could not resolve a coherent rsync, Node.js, and npm build environment."
+    throw "MSYS2 Bash could not resolve a coherent rsync, diffutils, Node.js, and npm build environment."
 }
 
 Write-Host "Windows production-bundle prerequisites are valid."

@@ -147,7 +147,7 @@ do not open PRs to `main` or push it directly.
 
 - Prefer `./.venv/bin/python` for CAD Python work.
 - On Windows, production bundling requires one coherent MSYS2 environment with
-  Bash and `rsync`; do not mix Git Bash with an `rsync.exe` copied from another
+  Bash, `rsync`, and GNU `diff`/`cmp`; do not mix Git Bash with executables copied from another
   POSIX runtime. Run `scripts/dev/check-windows-bundle-prereqs.ps1` before
   `scripts/bundle/bundle.sh` and invoke the bundler through the validated MSYS2
   Bash path it reports.
