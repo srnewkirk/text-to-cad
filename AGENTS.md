@@ -146,6 +146,11 @@ do not open PRs to `main` or push it directly.
 ## Environments
 
 - Prefer `./.venv/bin/python` for CAD Python work.
+- On Windows, production bundling requires one coherent MSYS2 environment with
+  Bash and `rsync`; do not mix Git Bash with an `rsync.exe` copied from another
+  POSIX runtime. Run `scripts/dev/check-windows-bundle-prereqs.ps1` before
+  `scripts/bundle/bundle.sh` and invoke the bundler through the validated MSYS2
+  Bash path it reports.
 - Keep new branch checkouts and git worktrees lightweight by default. Do not
   copy `.venv/` or `models/` through `.worktreeinclude`; recreate `.venv/`
   inside the worktree only when Python dependencies are needed for the workflow.
