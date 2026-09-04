@@ -13,6 +13,25 @@
 
 SNAPSHOT_RUNTIME_ESBUILD_VERSION="${CAD_SNAPSHOT_ESBUILD_VERSION:-0.27.7}"
 
+snapshot_runtime_node_path() {
+  local path="$1"
+  if [ "$(node -p 'process.platform')" = "win32" ] && command -v cygpath >/dev/null 2>&1; then
+    cygpath -m "$path"
+  else
+    printf '%s\n' "$path"
+  fi
+}
+
+snapshot_runtime_node_path_list() {
+  local separator=":" path result=""
+  if [ "$(node -p 'process.platform')" = "win32" ]; then separator=";"; fi
+  for path in "$@"; do
+    path="$(snapshot_runtime_node_path "$path")"
+    result="${result:+$result$separator}$path"
+  done
+  printf '%s\n' "$result"
+}
+
 # three, gifenc, and meshoptimizer are read from packages/cadjs/package-lock.json, the one
 # place their exact versions are already pinned, so a dependency bump cannot silently change
 # what ships without also changing the committed bundle. This matches node_builders.sh.
@@ -20,8 +39,10 @@ SNAPSHOT_RUNTIME_ESBUILD_VERSION="${CAD_SNAPSHOT_ESBUILD_VERSION:-0.27.7}"
 # sourcing.
 snapshot_runtime_locked_version() {
   local name="$1"
+  local lockfile
+  lockfile="$(snapshot_runtime_node_path "$BUNDLE_REPO_ROOT/packages/cadjs/package-lock.json")"
   node -p "
-    const lock = require('$BUNDLE_REPO_ROOT/packages/cadjs/package-lock.json');
+    const lock = require('$lockfile');
     const entry = lock.packages && lock.packages['node_modules/$name'];
     if (!entry || !entry.version) {
       throw new Error('packages/cadjs/package-lock.json has no pinned $name');
@@ -58,6 +79,8 @@ snapshot_runtime_need_install() {
   local gifenc="$3"
   local meshoptimizer="$4"
   [ -x "$deps_dir/node_modules/.bin/esbuild" ] || return 0
+  local deps_node
+  deps_node="$(snapshot_runtime_node_path "$deps_dir/node_modules")"
   node <<EOF || return 0
 const deps = {
   esbuild: "$SNAPSHOT_RUNTIME_ESBUILD_VERSION",
@@ -66,7 +89,7 @@ const deps = {
   meshoptimizer: "$meshoptimizer",
 };
 for (const [name, expected] of Object.entries(deps)) {
-  const actual = require("$deps_dir/node_modules/" + name + "/package.json").version;
+  const actual = require("$deps_node/" + name + "/package.json").version;
   if (actual !== expected) {
     process.exit(1);
   }
@@ -153,7 +176,7 @@ build_snapshot_runtime() {
   # catches the failure and renders on without a decoder, so a bundle built
   # without it silently loses EXT_meshopt_compression support instead of failing
   # the build.
-  NODE_PATH="$BUNDLE_REPO_ROOT/packages:$deps_dir/node_modules" \
+  NODE_PATH="$(snapshot_runtime_node_path_list "$BUNDLE_REPO_ROOT/packages" "$deps_dir/node_modules")" \
     "$deps_dir/node_modules/.bin/esbuild" "$(snapshot_runtime_entrypoint)" \
     --bundle \
     --format=esm \
