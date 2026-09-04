@@ -9,7 +9,7 @@ fixture/artifact area.
 For development, branch from `develop` and open PRs back to `develop`:
 
 ```bash
-git clone --branch develop https://github.com/earthtojake/text-to-cad.git
+git clone --branch develop https://github.com/srnewkirk/text-to-cad.git
 cd text-to-cad
 git switch -c my-change
 ```
@@ -150,6 +150,22 @@ should stay in the symlinked `develop` layout. When you specifically need to ins
 production outputs locally, use a temporary checkout or rerun
 `scripts/dev/setup-symlinks.sh` afterward, then run:
 
+On Windows, first run the fail-closed prerequisite check:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\check-windows-bundle-prereqs.ps1
+```
+
+The production bundler uses `rsync` for exact tree mirroring, stale-file
+deletion, exclusions, and conversion of development symlinks into ordinary
+release files; its freshness checks use GNU `diff` and `cmp`. Git for Windows
+does not supply the complete toolset; do not mix its Bash with executables
+copied from a different POSIX runtime. Use a single MSYS2 installation for Bash,
+`rsync`, and `diffutils`, and invoke the commands below through
+the exact MSYS2 Bash path printed by the check. If the dependency is absent,
+install it locally with explicit approval rather than moving the build to
+another computer.
+
 ```bash
 scripts/bundle/bundle.sh --clean
 scripts/bundle/bundle.sh --check
@@ -227,8 +243,18 @@ is wrong.
 
 ### Shipping a release
 
-Run the `Release` GitHub Actions workflow. Its defaults are the real-release
-settings — build from `develop` (`base_branch=develop`), publish to `main`
+> **Personal-fork policy:** In `srnewkirk/text-to-cad`, the installable CAD
+> plugin is released through `srnewkirk/codex-plugin-marketplace` and installed
+> as `cad@homelab-plugins`. Do not run the `Release` workflow described below as
+> the default personal release path. That workflow is inherited community
+> machinery and is retained only as implementation/reference material unless
+> the user explicitly authorizes its exact PyPI, docs, mirror, tag, and GitHub
+> Release effects. See `AGENTS.md` and the marketplace repository's
+> `docs/release-process.md` for the authoritative personal workflow.
+
+The upstream community project runs the `Release` GitHub Actions workflow. Its
+defaults are the community-release settings — build from `develop`
+(`base_branch=develop`), publish to `main`
 (`target_branch=main`), and publish the GitHub Release (`publish=true`, not a
 draft) — and the input descriptions in `.github/workflows/release.yml` are
 authoritative. Choose the semver bump (`patch`, `minor`, or `major`) or an

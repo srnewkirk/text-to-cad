@@ -83,64 +83,22 @@ robot description files, simulation, and local review.
 
 ## 💻 Installation
 
-For production use, install or clone from `main`; that branch contains the
-generated skill outputs needed by provider installers.
+This fork owns source development. Its supported production package is maintained
+in [`srnewkirk/codex-plugin-marketplace`](https://github.com/srnewkirk/codex-plugin-marketplace),
+not installed directly from this checkout, a worktree, or a community release.
 
-### Skills
-
-Install text-to-cad with the Skills CLI:
-
-```bash
-npx skills add earthtojake/text-to-cad
-```
-
-This is the preferred installation path. It installs the individual skills
-directly for supported agents.
-
-**Use the same command to update.** `add` re-fetches the package and overwrites
-what is already installed, so it both refreshes existing skills and installs any
-skill added in a newer release. `npx skills update` only refreshes skills already
-in your lockfile, so it silently misses new ones — which matters here, because
-releases do add skills.
-
-Neither command removes a skill that was retired upstream; drop one with
-`npx skills remove <skill>` if you need to.
-
-(`npx skills install …` still works — it is an undocumented alias for `add`.)
-
-### Plugins
-
-Provider-native plugin installs are also available for Codex, Claude Code, and
-Grok Build:
+Install the marketplace-qualified Codex plugin:
 
 ```bash
-# Codex (requires Codex 0.142.0 or newer)
-codex plugin marketplace add earthtojake/text-to-cad
-codex plugin add cad@text-to-cad
+codex plugin marketplace add srnewkirk/codex-plugin-marketplace
+codex plugin add cad@homelab-plugins
 ```
 
-Codex resolves this repository-root plugin only from 0.142.0 onward. On older
-versions the plugin is skipped silently and never appears in `codex plugin list`;
-upgrade with `npm install -g @openai/codex@latest`.
-
-```bash
-# Claude Code
-claude plugin marketplace add earthtojake/text-to-cad
-claude plugin install cad@text-to-cad
-```
-
-Grok Build uses the existing `.claude-plugin/marketplace.json`; there is no
-separate Grok plugin manifest.
-
-```bash
-# Grok Build
-grok plugin install earthtojake/text-to-cad --trust
-grok plugin enable cad
-```
-
-Restart your agent if newly installed skills do not appear. For local
-development, branch from `develop`, open PRs against `develop`, and use the symlink
-workflow in [CONTRIBUTING.md](CONTRIBUTING.md).
+The community project remains a read-only upstream used to review possible
+improvements before changes. It is not this fork's default release or
+installation source. For local development, branch from `develop`, open PRs
+against `develop`, and use the symlink workflow in
+[CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 🛠️ Contributing
 

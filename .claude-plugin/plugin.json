@@ -1,13 +1,13 @@
 {
   "name": "cad",
-  "version": "0.4.28",
+  "version": "0.4.29",
   "description": "CAD, robotics, fabrication, and local review skills.",
   "author": {
-    "name": "earthtojake",
-    "url": "https://github.com/earthtojake"
+    "name": "srnewkirk",
+    "url": "https://github.com/srnewkirk"
   },
   "homepage": "https://www.texttocad.dev",
-  "repository": "https://github.com/earthtojake/text-to-cad",
+  "repository": "https://github.com/srnewkirk/text-to-cad",
   "license": "MIT",
   "keywords": [
     "cad",

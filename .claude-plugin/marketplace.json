@@ -1,7 +1,7 @@
 {
   "name": "text-to-cad",
   "owner": {
-    "name": "earthtojake"
+    "name": "srnewkirk"
   },
   "interface": {
     "displayName": "text-to-cad"
@@ -10,18 +10,18 @@
     "description": "CAD, robotics, fabrication, and local review plugins."
   },
   "description": "CAD, robotics, fabrication, and local review plugins.",
-  "version": "0.4.28",
+  "version": "0.4.29",
   "plugins": [
     {
       "name": "cad",
       "source": "./",
       "description": "CAD, robotics, fabrication, and local review skills.",
-      "version": "0.4.28",
+      "version": "0.4.29",
       "author": {
-        "name": "earthtojake"
+        "name": "srnewkirk"
       },
       "homepage": "https://www.texttocad.dev",
-      "repository": "https://github.com/earthtojake/text-to-cad",
+      "repository": "https://github.com/srnewkirk/text-to-cad",
       "license": "MIT",
       "category": "productivity",
       "tags": [

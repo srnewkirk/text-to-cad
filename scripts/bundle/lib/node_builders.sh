@@ -28,6 +28,25 @@ NODE_BUILDER_ESBUILD_VERSION="${NODE_BUILDER_ESBUILD_VERSION:-0.27.7}"
 NODE_BUILDER_BUILD_DEPS_DIR="${NODE_BUILDER_BUILD_DEPS_DIR:-${BUNDLE_REPO_ROOT:?BUNDLE_REPO_ROOT must be set before sourcing node_builders.sh}/tmp/node-builder-build}"
 NODE_BUILDER_LOCKFILE="$BUNDLE_REPO_ROOT/packages/cadjs/package-lock.json"
 
+node_builder_node_path() {
+  local path="$1"
+  if [ "$(node -p 'process.platform')" = "win32" ] && command -v cygpath >/dev/null 2>&1; then
+    cygpath -m "$path"
+  else
+    printf '%s\n' "$path"
+  fi
+}
+
+node_builder_node_path_list() {
+  local separator=":" path result=""
+  if [ "$(node -p 'process.platform')" = "win32" ]; then separator=";"; fi
+  for path in "$@"; do
+    path="$(node_builder_node_path "$path")"
+    result="${result:+$result$separator}$path"
+  done
+  printf '%s\n' "$result"
+}
+
 # Files whose runtime paths are computed from `import.meta.url` inside the bundle, so they
 # cannot be inlined and must be emitted BESIDE it under the same basename:
 #   implicitClosureHooks.mjs  <- register("./implicitClosureHooks.mjs", import.meta.url)
@@ -36,8 +55,10 @@ NODE_BUILDER_LOCKFILE="$BUNDLE_REPO_ROOT/packages/cadjs/package-lock.json"
 
 node_builder_locked_version() {
   local name="$1"
+  local lockfile
+  lockfile="$(node_builder_node_path "$NODE_BUILDER_LOCKFILE")"
   node -p "
-    const lock = require('$NODE_BUILDER_LOCKFILE');
+    const lock = require('$lockfile');
     const entry = lock.packages && lock.packages['node_modules/$name'];
     if (!entry || !entry.version) {
       throw new Error('packages/cadjs/package-lock.json has no pinned $name');
@@ -68,6 +89,8 @@ ensure_node_builder_deps() {
   three="$(node_builder_locked_version three)" || return 1
   meshoptimizer="$(node_builder_locked_version meshoptimizer)" || return 1
 
+  local deps_node
+  deps_node="$(node_builder_node_path "$NODE_BUILDER_BUILD_DEPS_DIR/node_modules")"
   if [ -x "$NODE_BUILDER_BUILD_DEPS_DIR/node_modules/.bin/esbuild" ] && node -e "
     const deps = {
       esbuild: '$NODE_BUILDER_ESBUILD_VERSION',
@@ -75,7 +98,7 @@ ensure_node_builder_deps() {
       meshoptimizer: '$meshoptimizer',
     };
     for (const [name, expected] of Object.entries(deps)) {
-      const actual = require('$NODE_BUILDER_BUILD_DEPS_DIR/node_modules/' + name + '/package.json').version;
+      const actual = require('$deps_node/' + name + '/package.json').version;
       if (actual !== expected) process.exit(1);
     }
   " 2>/dev/null; then
@@ -111,7 +134,7 @@ bundle_node_builders() {
     # map and the pinned three/meshoptimizer out of the tmp toolchain, so the bundle is
     # hermetic on a fresh checkout with no packages/*/node_modules. A directory --alias
     # cannot do the first: it bypasses the exports map.
-    NODE_PATH="$BUNDLE_REPO_ROOT/packages:$NODE_BUILDER_BUILD_DEPS_DIR/node_modules" \
+    NODE_PATH="$(node_builder_node_path_list "$BUNDLE_REPO_ROOT/packages" "$NODE_BUILDER_BUILD_DEPS_DIR/node_modules")" \
       "$NODE_BUILDER_BUILD_DEPS_DIR/node_modules/.bin/esbuild" "$entry" \
       --bundle \
       --format=esm \

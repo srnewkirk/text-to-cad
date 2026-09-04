@@ -3,6 +3,34 @@
 This repo is a workbench for CAD-related agent skills. Treat `skills/` as the
 product and `models/` as the shared fixture/artifact area.
 
+## Fork-Only Authorization Boundary
+
+- This checkout is maintained for `srnewkirk/text-to-cad`, and local Codex
+  installations must come from the `cad@homelab-plugins` package maintained in
+  `srnewkirk/codex-plugin-marketplace`.
+- `srnewkirk/text-to-cad` is the source-code repository. It is not the default
+  plugin distribution or installation source. `srnewkirk/codex-plugin-marketplace`
+  is the sole default release, distribution, registration, and installation
+  authority for the personal CAD plugin.
+- Treat `earthtojake/text-to-cad` and every other community repository as
+  read-only reference material unless the user explicitly authorizes a specific
+  external action.
+- Do not open or update upstream pull requests, push upstream branches or tags,
+  create upstream issues or releases, dispatch upstream workflows, or otherwise
+  publish outside `srnewkirk/text-to-cad` without explicit user authorization
+  naming the destination and action.
+- Permission to commit, push, promote, release, or install in this project means
+  the user's fork only. It never implies permission to contact or modify the
+  upstream community project.
+- Before beginning a code change, fetch and review the community upstream for
+  relevant improvements when practical. This is a read-only comparison step:
+  upstream findings may inform work in `srnewkirk/text-to-cad`, but never change
+  the default write, release, distribution, or installation targets.
+- Before any installation, verify and report the marketplace-qualified identity
+  `cad@homelab-plugins` and the marketplace repository
+  `srnewkirk/codex-plugin-marketplace`. Do not install directly from a checkout,
+  worktree, symlink, community release, or upstream plugin package.
+
 ## Branch And Layout First
 
 Before changing code, branch from `develop`, not `main`; PRs should target `develop`.
@@ -12,36 +40,28 @@ symlinked, follow the link and edit the source target.
 Use `main` as the production clone/release branch only. `main` is publish-only:
 do not open PRs to `main` or push it directly.
 
-## Release Workflow
+## Personal Release And Installation Workflow
 
-Do not bump the canonical release version in `VERSION` during
-normal development work. Ship releases only through the single `Release`
-GitHub Actions workflow, which handles the version bump, release PR, publish
-commit to `main`, `cadgen` PyPI publish, docs deploy, semver tag, and GitHub
-Release in one run.
-
-When asked to publish, make, or ship a release, dispatch `Release` with its
-defaults: build from `develop` (`base_branch=develop`), publish to `main`
-(`target_branch=main`), and publish the GitHub Release (`publish=true`, not a
-draft). Never pick the semver bump yourself: if the request does not name
-patch, minor, major, or an exact version, ask which one before dispatching.
-Use `target_branch=build-test` only when the user explicitly asks to test
-CI/CD or build-pipeline changes — never by default and never as part of a
-requested release, and pair it with `bump=none` so a rehearsal does not consume
-a version number. `bump=none` publishes `base_branch` as it stands and is also
-how you resume a failed publish; it is never a release setting.
-
-The standalone `Deploy Docs` workflow redeploys the docs site without running a
-release. It deploys a source ref (defaulting to `develop`), never `main`: the
-publish tree drops `docs/` and `packages/`, which the docs app builds against.
-The CAD Viewer is a local-filesystem app with no hosted deployment, but each
-release mirrors `viewer/` into the standalone `earthtojake/cad-viewer` repo
-through the `Sync CAD Viewer Repo` workflow, which `Release` calls after
-publishing and which can also be dispatched on its own. Both of those read the
-release SOURCE commit, because `main` carries only what installs.
-`main` is publish-only; pushing `develop` runs tests but
-never publishes. See the Releases section in `CONTRIBUTING.md` for the full
-flow, CI/CD-testing and resume options, and local/manual fallbacks.
+- Do not dispatch `.github/workflows/release.yml` by default. It is inherited
+  community release machinery and includes community-oriented PyPI, docs,
+  mirror, tag, and GitHub Release operations. It may be inspected for useful
+  implementation details but may run only when the user explicitly authorizes
+  that exact workflow and its external effects.
+- Normal development occurs in `srnewkirk/text-to-cad` from `develop`. Approved
+  source changes are validated and incorporated into that fork's `main` by the
+  personal release process.
+- The installable plugin is then promoted into
+  `srnewkirk/codex-plugin-marketplace` using that repository's documented,
+  fail-closed promotion process. The marketplace version is the personal plugin
+  release version.
+- Commit and push the reviewed marketplace promotion to its `main`, then—only
+  with the required explicit administrative approval—refresh the marketplace
+  registration and install `cad@homelab-plugins`.
+- A completed installation must contain ordinary files managed by Codex. Never
+  substitute a source checkout, worktree, junction, or symlink for a marketplace
+  installation.
+- Community upstream review is a pre-change synchronization check, not a change
+  in ownership or destination. No upstream result supersedes this workflow.
 
 ## Repo Map
 
@@ -126,6 +146,11 @@ flow, CI/CD-testing and resume options, and local/manual fallbacks.
 ## Environments
 
 - Prefer `./.venv/bin/python` for CAD Python work.
+- On Windows, production bundling requires one coherent MSYS2 environment with
+  Bash, `rsync`, and GNU `diff`/`cmp`; do not mix Git Bash with executables copied from another
+  POSIX runtime. Run `scripts/dev/check-windows-bundle-prereqs.ps1` before
+  `scripts/bundle/bundle.sh` and invoke the bundler through the validated MSYS2
+  Bash path it reports.
 - Keep new branch checkouts and git worktrees lightweight by default. Do not
   copy `.venv/` or `models/` through `.worktreeinclude`; recreate `.venv/`
   inside the worktree only when Python dependencies are needed for the workflow.
