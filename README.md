@@ -17,7 +17,7 @@ A library of agent skills for CAD, CAE and CAM
 
 [Docs](https://www.texttocad.dev)
 
-[![Tests](https://img.shields.io/github/actions/workflow/status/earthtojake/text-to-cad/test.yml?branch=develop&style=for-the-badge&logo=githubactions&logoColor=white&label=Tests)](https://github.com/earthtojake/text-to-cad/actions/workflows/test.yml?query=branch%3Adevelop)
+[![Tests](https://img.shields.io/github/actions/workflow/status/earthtojake/text-to-cad/test.yml?branch=main&style=for-the-badge&logo=githubactions&logoColor=white&label=Tests)](https://github.com/earthtojake/text-to-cad/actions/workflows/test.yml?query=branch%3Amain)
 [![Join Discord](https://img.shields.io/badge/Discord-Join-5865F2?style=for-the-badge&logo=discord&logoColor=white)](https://discord.gg/5FGB9DwJYU)
 [![GitHub stars](https://img.shields.io/github/stars/earthtojake/text-to-cad?style=for-the-badge&logo=github&label=Stars)](https://github.com/earthtojake/text-to-cad/stargazers)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)](LICENSE)
@@ -79,29 +79,72 @@ robot description files, simulation, and local review.
 | DfAM Check   | Measures mesh printability per process: wall thickness, overhangs, support volume, and build orientation.                                          | [skills/dfam-check](skills/dfam-check/SKILL.md)     |
 | G-code       | Slices supported mesh files into validated, printer-profiled FDM `.gcode` with real slicer CLIs.                                                   | [skills/gcode](skills/gcode/SKILL.md)               |
 | Bambu Labs   | Dry-runs, uploads, and cautiously starts local Bambu Lab print jobs from validated `.gcode`.                                                       | [skills/bambu-labs](skills/bambu-labs/SKILL.md)     |
-| Implicit CAD | Creates browser-native implicit CAD models using GLSL signed-distance fields and CAD Viewer raymarch rendering. Experimental.                      | [skills/implicit-cad](skills/implicit-cad/SKILL.md) |
 
 ## 💻 Installation
 
-This fork owns source development. Its supported production package is maintained
-in [`srnewkirk/codex-plugin-marketplace`](https://github.com/srnewkirk/codex-plugin-marketplace),
-not installed directly from this checkout, a worktree, or a community release.
+Install or clone from `main`: it is the source tree, and every skill's
+`requirements.txt` pins the `cadgen` release it was published with. (`models/`,
+the fixture corpus, arrives as small LFS pointers and is not needed to use the
+skills.)
 
-Install the marketplace-qualified Codex plugin:
+### Skills
+
+Install text-to-cad with the Skills CLI:
 
 ```bash
-codex plugin marketplace add srnewkirk/codex-plugin-marketplace
-codex plugin add cad@homelab-plugins
+npx skills add earthtojake/text-to-cad
 ```
 
-The community project remains a read-only upstream used to review possible
-improvements before changes. It is not this fork's default release or
-installation source. For local development, branch from `develop`, open PRs
-against `develop`, and use the symlink workflow in
+This is the preferred installation path. It installs the individual skills
+directly for supported agents.
+
+**Use the same command to update.** `add` re-fetches the package and overwrites
+what is already installed, so it both refreshes existing skills and installs any
+skill added in a newer release. `npx skills update` only refreshes skills already
+in your lockfile, so it silently misses new ones — which matters here, because
+releases do add skills.
+
+Neither command removes a skill that was retired upstream; drop one with
+`npx skills remove <skill>` if you need to.
+
+(`npx skills install …` still works — it is an undocumented alias for `add`.)
+
+### Plugins
+
+Provider-native plugin installs are also available for Codex, Claude Code, and
+Grok Build:
+
+```bash
+# Codex (requires Codex 0.142.0 or newer)
+codex plugin marketplace add earthtojake/text-to-cad
+codex plugin add cad@text-to-cad
+```
+
+Codex resolves this repository-root plugin only from 0.142.0 onward. On older
+versions the plugin is skipped silently and never appears in `codex plugin list`;
+upgrade with `npm install -g @openai/codex@latest`.
+
+```bash
+# Claude Code
+claude plugin marketplace add earthtojake/text-to-cad
+claude plugin install cad@text-to-cad
+```
+
+Grok Build uses the existing `.claude-plugin/marketplace.json`; there is no
+separate Grok plugin manifest.
+
+```bash
+# Grok Build
+grok plugin install earthtojake/text-to-cad --trust
+grok plugin enable cad
+```
+
+Restart your agent if newly installed skills do not appear. For local
+development, branch from `main`, open PRs against `main`, and follow
 [CONTRIBUTING.md](CONTRIBUTING.md).
 
 ## 🛠️ Contributing
 
-Development happens from the `develop` branch; open PRs against `develop`, not `main`.
+Branch from `main` and open PRs against `main`.
 For local contribution workflow, skill linking, and validation guidance, see
 [CONTRIBUTING.md](CONTRIBUTING.md).

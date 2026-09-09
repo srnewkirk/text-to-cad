@@ -10,74 +10,26 @@ const canonicalVersionPath = "VERSION";
 const semverPattern = /^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)$/;
 
 export const jsonTargets = [
-  { path: "docs/package.json", fields: [["version"]] },
-  { path: "docs/package-lock.json", fields: [["version"], ["packages", "", "version"]] },
-  { path: "packages/cadjs/package.json", fields: [["version"]] },
+  { path: "apps/docs/package.json", fields: [["version"]] },
+  { path: "apps/docs/package-lock.json", fields: [["version"], ["packages", "", "version"]] },
+  { path: "packages/cadgen-js/package.json", fields: [["version"]] },
+  { path: "packages/cadgen-js/package-lock.json", fields: [["version"], ["packages", "", "version"]] },
+  { path: "apps/viewer/package.json", fields: [["version"]] },
   {
-    path: "packages/cadjs/package-lock.json",
-    fields: [["version"], ["packages", "", "version"], ["packages", "../implicitjs", "version"]],
-  },
-  { path: "packages/implicitjs/package.json", fields: [["version"]] },
-  { path: "packages/implicitjs/package-lock.json", fields: [["version"], ["packages", "", "version"]] },
-  { path: "viewer/package.json", fields: [["version"]] },
-  {
-    path: "viewer/package-lock.json",
+    path: "apps/viewer/package-lock.json",
     fields: [
       ["version"],
       ["packages", "", "version"],
-      ["packages", "packages/cadjs", "version"],
-      ["packages", "packages/implicitjs", "version"],
+      ["packages", "../../packages/cadgen-js", "version"],
     ],
   },
-  { path: "skills/cad-viewer/scripts/viewer/package.json", fields: [["version"]] },
   { path: ".claude-plugin/plugin.json", fields: [["version"]] },
   { path: ".codex-plugin/plugin.json", fields: [["version"]] },
   { path: ".claude-plugin/marketplace.json", fields: [["version"]], pluginEntries: ["cad"] },
-  { path: "viewer/packages/cadjs/package.json", fields: [["version"]], required: false },
-  {
-    path: "viewer/packages/cadjs/package-lock.json",
-    fields: [["version"], ["packages", "", "version"], ["packages", "../implicitjs", "version"]],
-    required: false,
-  },
-  { path: "skills/cad-viewer/scripts/viewer/packages/cadjs/package.json", fields: [["version"]], required: false },
-  {
-    path: "skills/cad-viewer/scripts/viewer/packages/cadjs/package-lock.json",
-    fields: [["version"], ["packages", "", "version"], ["packages", "../implicitjs", "version"]],
-    required: false,
-  },
-  { path: "viewer/packages/implicitjs/package.json", fields: [["version"]], required: false },
-  {
-    path: "viewer/packages/implicitjs/package-lock.json",
-    fields: [["version"], ["packages", "", "version"]],
-    required: false,
-  },
-  { path: "skills/cad-viewer/scripts/viewer/packages/implicitjs/package.json", fields: [["version"]], required: false },
-  {
-    path: "skills/cad-viewer/scripts/viewer/packages/implicitjs/package-lock.json",
-    fields: [["version"], ["packages", "", "version"]],
-    required: false,
-  },
-  { path: "skills/implicit-cad/scripts/packages/implicitjs/package.json", fields: [["version"]], required: false },
-  {
-    path: "skills/implicit-cad/scripts/packages/implicitjs/package-lock.json",
-    fields: [["version"], ["packages", "", "version"]],
-    required: false,
-  },
-  { path: "skills/cad/scripts/packages/implicitjs/package.json", fields: [["version"]], required: false },
-  {
-    path: "skills/cad/scripts/packages/implicitjs/package-lock.json",
-    fields: [["version"], ["packages", "", "version"]],
-    required: false,
-  },
 ];
 
 const tomlTargets = [
   "packages/cadgen/pyproject.toml",
-  "viewer/moveit2_server/pyproject.toml",
-  "viewer/packages/cadgen/pyproject.toml",
-  "skills/cad-viewer/scripts/viewer/moveit2_server/pyproject.toml",
-  "skills/cad-viewer/scripts/viewer/packages/cadgen/pyproject.toml",
-  "skills/cad/scripts/packages/cadgen/pyproject.toml",
 ];
 
 function usage() {
@@ -86,8 +38,8 @@ function usage() {
 
 Synchronizes duplicate package and plugin metadata versions from the canonical
 VERSION file. Release preparation edits that file, then
-stamps derived metadata from it; the bundle script and the Release workflow
-re-check the same metadata before production output is written.
+stamps derived metadata from it; the bundle script and the Publish Release
+workflow re-check the same metadata before production output is written.
 
 Options:
   --check  Fail if derived version metadata is stale.
@@ -235,7 +187,7 @@ function syncTomlTarget(relativePath, version) {
  * happens, so two of them stamping it means the last write wins -- and when the mirror declares
  * FEWER fields than the canonical target, the field only the canonical one knows about is
  * silently reverted. That is how the 0.4.10 release gate came to reject its own bump:
- * `packages/cadjs/package-lock.json` was stamped with the implicitjs version and then
+ * `packages/cadgen-js/package-lock.json` was stamped with a package version and then
  * overwritten through its own symlink, which did not carry that field.
  */
 export function mergeTargetsByRealPath(targets) {

@@ -24,8 +24,8 @@ _STEP_REMEDIATION = {
     "skill": "cad",
     "reason": "STEP/STP is boundary-representation CAD, not a mesh.",
     "next_step": (
-        "Export an STL sidecar with $cad: `python scripts/export <input> --stl <output>.stl`. "
-        "When a Python generator exists, target it instead: `python scripts/export <model>.step.py --stl <output>.stl`. "
+        "Export an STL sidecar with $cad: `cadgen stl build <input> <output>.stl`. "
+        "When a model script exists, run it instead (`python <model>.py`) so its declared exports build. "
         "Then slice the exported .stl with this skill."
     ),
 }
@@ -33,8 +33,8 @@ _FLAT_2D_REMEDIATION = {
     "skill": "cad",
     "reason": "This is a 2D drawing, not a printable solid, and this toolchain has no 2D-to-mesh conversion.",
     "next_step": (
-        "For an FDM print, model the 3D solid in $cad with `gen_step()` and export an STL sidecar "
-        "(`python scripts/export <model>.step.py --stl <output>.stl`), then slice that .stl here. "
+        "For an FDM print, model the 3D solid in $cad with an `@step` model script and export an STL sidecar "
+        "(run `python <model>.py`), then slice that .stl here. "
         "If the part is a flat cut rather than a print, use $sendcutsend instead of this skill."
     ),
 }
@@ -46,8 +46,8 @@ def _robot_description_remediation(skill: str, label: str) -> dict[str, str]:
         "reason": f"{label} is a robot description that references per-link mesh files; it is not itself a mesh.",
         "next_step": (
             f"Slice the per-link .stl/.obj meshes the {label} references, one mesh at a time. "
-            f"If those meshes are missing or stale, regenerate them from the owning CAD source with $cad "
-            "(`python scripts/export <model>.step.py --stl <output>.stl`), then slice the exported mesh here. "
+            f"If those meshes are missing or stale, regenerate them from the owning CAD source "
+            "($cad: run `python <model>.py`, or `cadgen stl build <input.step> <output>.stl`), then slice the exported mesh here. "
             f"Use ${skill} for the robot description itself."
         ),
     }

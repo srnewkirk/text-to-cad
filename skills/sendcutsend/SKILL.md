@@ -15,7 +15,7 @@ Treat SendCutSend's ordering guide, catalog JSON, and specs JSON as evidence fee
 
 ## Geometry Inspection
 
-Use the active project Python environment for local geometry inspection code. If the `$cad` skill is available, use it first for STEP/STP/DXF geometry inspection, measurement, and validation workflows, then add any SendCutSend-specific targeted measurements that are still missing. Use `build123d.import_step` for STEP/STP inspection and `build123d.ezdxf` for DXF inspection when geometry facts are required. Do not use raw text parsing or alternate geometry backends for geometry facts.
+Use the active project Python environment for local geometry inspection code. If the `$cad` skill is available, use it first for STEP/STP/DXF geometry inspection, measurement, and validation workflows, then add any SendCutSend-specific targeted measurements that are still missing. Use `build123d.import_step` for STEP/STP inspection and the `ezdxf` package directly (`import ezdxf`; it installs alongside build123d) for DXF inspection when geometry facts are required. There is no `build123d.ezdxf`. Do not use raw text parsing or alternate geometry backends for geometry facts.
 
 ## CAD Viewer Handoff
 

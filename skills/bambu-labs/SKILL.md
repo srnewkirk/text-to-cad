@@ -88,8 +88,8 @@ request.
 
 ## Handoff Modes
 
-`--handoff template-project` is the validated A1 Mini path from this repo's LAN
-debugging. It starts from validated plain `.gcode`, copies a known-good
+`--handoff template-project` is the A1 Mini path validated against a real
+printer over LAN. It starts from validated plain `.gcode`, copies a known-good
 same-printer `.gcode.3mf` template, replaces `Metadata/plate_N.gcode`, writes
 the plate MD5, uploads the project to the FTPS root, and publishes
 `print.project_file` with `url: ftp:///<name>.gcode.3mf`.

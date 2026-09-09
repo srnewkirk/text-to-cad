@@ -17,7 +17,7 @@ starts print jobs.
 ## Geometry Inspection
 
 Use `scripts/dfam_tool.py` in the active project Python environment for all
-geometry facts (requires `trimesh`, `numpy`, `rtree`). The tool is fact-only:
+geometry facts (install `requirements.txt` first — every run needs it). The tool is fact-only:
 it reports measurements and never emits pass/fail or readiness statuses.
 Comparisons and verdicts belong to this workflow. Do not estimate wall
 thickness, overhang angles, or support volume by eye or from renders when the

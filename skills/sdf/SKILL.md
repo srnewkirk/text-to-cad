@@ -15,9 +15,24 @@ This skill is for **SDFormat**, not signed-distance-field geometry.
 
 The `.sdf` file is the source of truth: author and edit the XML directly. There is no `gen_sdf()` contract.
 
+## Setup
+
+This skill's commands are thin entrypoints over the `cadgen` distribution, which
+carries the Python build runtime and the JavaScript it executes. Install it once:
+
+```bash
+python -m pip install -r requirements.txt
+```
+
+Rendering additionally needs a browser, which pip cannot supply:
+
+```bash
+python -m playwright install chromium
+```
+
 ## Core rules
 
-1. Author `.sdf` XML directly and validate every created or modified file with `scripts/validate` before reporting completion.
+1. Author `.sdf` XML directly and validate every created or modified file with `cadgen sdf validate` before reporting completion.
 2. Identify the target consumer before editing: Gazebo/libsdformat version, another simulator, visualization-only tooling, model package, or world handoff.
 3. Decide document kind: model-level SDF, world-level SDF, or model-in-world. Prefer model-level SDF for reusable robot/object exports.
 4. Use SI units unless the target explicitly requires otherwise: meters, kilograms, seconds, radians.
@@ -44,7 +59,7 @@ After completing SDF work that creates or modifies a `.sdf`, you must ALWAYS han
 2. Read or create the design ledger comment block.
 3. Read `references/frame-semantics.md` before editing any `<pose>`, `<frame>`, joint axis, `relative_to`, `expressed_in`, nested scope, sensor frame, or plugin frame.
 4. Author the XML directly, following the worked examples in `references/examples.md`.
-5. Validate the explicit target with `scripts/validate`; treat bundled validation as a guardrail, not simulator proof.
+5. Validate the explicit target with `cadgen sdf validate`; treat bundled validation as a guardrail, not simulator proof.
 6. Run target-consumer smoke tests when available (`references/smoke-tests.md`).
 7. Hand the file to `$cad-viewer`. Static rendering does not execute SDF plugins or read file-authored motion metadata.
 8. Report checks run, checks skipped, and assumptions.
@@ -54,19 +69,20 @@ After completing SDF work that creates or modifies a `.sdf`, you must ALWAYS han
 Run with the project or workspace Python environment. Treat `python` in examples as an interpreter placeholder; if bare `python` is unavailable, substitute `python3`, a project virtualenv interpreter, or the configured interpreter path. The validator uses only the Python standard library.
 
 ```bash
-python scripts/validate path/to/model.sdf
-python scripts/validate path/to/a.sdf path/to/b.sdf
-python scripts/validate path/to/model.sdf --strict
+cadgen sdf validate path/to/model.sdf
+cadgen sdf validate path/to/model.sdf --strict
+cadgen sdf validate path/to/model.sdf --json
+cadgen sdf snapshot path/to/model.sdf review.png
 ```
 
-The validator checks document shape, name scopes, pose/frame graphs, joints, geometry, mesh URIs, inertials, sensors, and plugins, and prints per-file findings plus a summary. `--strict` treats warnings as failures. It exits nonzero if any target fails.
+The validator checks document shape, name scopes, pose/frame graphs, joints, geometry, mesh URIs, inertials, sensors, and plugins, and prints its findings plus a summary. One run validates ONE file: `--strict` treats warnings as failures and `--json` emits the machine-readable findings document. It exits nonzero if the target fails.
 
 Optional external checking:
 
 ```bash
-python scripts/validate path/to/model.sdf --gz-check auto
-python scripts/validate path/to/model.sdf --gz-check required
-python scripts/validate path/to/model.sdf --gz-check never
+cadgen sdf validate path/to/model.sdf --gz-check auto
+cadgen sdf validate path/to/model.sdf --gz-check required
+cadgen sdf validate path/to/model.sdf --gz-check never
 ```
 
 `gz sdf --check` is optional target-consumer validation. It should be reported as skipped when unavailable unless explicitly required.
@@ -91,18 +107,18 @@ Risks:
 
 ## Snapshot Tool
 
-`scripts/snapshot` renders the robot to a PNG still or an orbit GIF, using the same shared
+`cadgen sdf snapshot` renders the robot to a PNG still, using the same shared
 CLI and headless browser runtime every rendering skill uses — so a snapshot matches what
 the CAD Viewer shows.
 
 ```bash
-python scripts/snapshot --input path/to/robot.sdf --output review.png
-python scripts/snapshot --input path/to/robot.sdf --output turntable.gif --mode orbit
+cadgen sdf snapshot path/to/robot.sdf review.png
 ```
 
-It accepts `.sdf` only. Pose the robot with the job field `"jointValues"` (joint name to
-degrees, defaulting to the rest pose) rather than `--params`, which is STEP-only; robots
-are authored in metres and are framed on the robot scene scale automatically.
+It accepts `.sdf` only (a format door, same `TARGET [OUT]` grammar as the rest). Pose the robot with `--joint-values` — `{joint: degrees}` JSON,
+joints you do not name staying at the rest pose (the `"jointValues"` job field is the same
+thing in a packet). Robots are authored in metres and are framed on the robot scene scale
+automatically.
 
 Theme settings live under one `--theme`, mirroring the viewer's Theme tab. The default
 theme is `snapshot` — Workbench Light with the ground grid, origin axis and shadows
@@ -113,7 +129,9 @@ Link meshes are resolved relative to the description, so they must be present: a
 unhydrated Git LFS pointer fails as "No link mesh loaded for robot". Run
 `git lfs checkout <mesh dir>` first.
 
-Use `python scripts/snapshot --help` for the complete current command interface.
+The grammar is `cadgen sdf snapshot TARGET [OUT] [flags]`, the same one every
+format door uses. Use `cadgen sdf snapshot --help` for the complete current
+interface — the flags a robot cannot act on are absent from it, not refused by it.
 
 ## References
 

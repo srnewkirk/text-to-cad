@@ -19,10 +19,9 @@ runs:
         node-version: "22"
         cache: npm
         cache-dependency-path: |
-          packages/cadjs/package-lock.json
-          packages/implicitjs/package-lock.json
-          viewer/package-lock.json
-          docs/package-lock.json
+          packages/cadgen-js/package-lock.json
+          apps/viewer/package-lock.json
+          apps/docs/package-lock.json
 
     - name: Install Python dependencies
       shell: bash
@@ -30,10 +29,21 @@ runs:
         python -m pip install --upgrade pip
         python -m pip install -r requirements-dev.txt
 
+    # `cadgen snapshot` renders in Playwright's own Chromium build. The Linux image
+    # happens to carry one; Windows does not, and a missing browser fails the
+    # snapshot suites with "Executable doesn't exist". Install it on every OS.
+    - name: Install the snapshot browser
+      shell: bash
+      run: |
+        if [ "$RUNNER_OS" = "Linux" ]; then
+          python -m playwright install --with-deps chromium
+        else
+          python -m playwright install chromium
+        fi
+
     - name: Install Node dependencies
       shell: bash
       run: |
-        npm ci --prefix packages/cadjs
-        npm ci --prefix packages/implicitjs
-        npm ci --prefix viewer
-        npm ci --prefix docs
+        npm ci --prefix packages/cadgen-js
+        npm ci --prefix apps/viewer
+        npm ci --prefix apps/docs

@@ -4,10 +4,12 @@ on:
   workflow_dispatch:
   pull_request:
     branches:
-      - develop
+      - main
+      - build-test
   push:
     branches:
-      - develop
+      - main
+      - build-test
 
 concurrency:
   group: test-${{ github.ref }}
@@ -20,10 +22,13 @@ jobs:
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
+        with:
+          # The VERSION guard below diffs against the PR base.
+          fetch-depth: 0
 
       - name: Set up Node.js
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@v7
         with:
           node-version: "22"
 
@@ -32,16 +37,40 @@ jobs:
           scripts/release/check-version.sh
           node scripts/release/sync-version.mjs --check
 
+      # Only a release PR moves VERSION. Prepare Release opens those from `release/X.Y.Z`
+      # and stamps the metadata and the skill pins with the same commit; a hand-made bump
+      # would ship a version whose pins, wheel and tag do not line up.
+      - name: Only release/* branches may change VERSION
+        if: github.event_name == 'pull_request'
+        env:
+          HEAD_REF: ${{ github.head_ref }}
+          BASE_SHA: ${{ github.event.pull_request.base.sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          if git diff --quiet "$BASE_SHA" "$HEAD_SHA" -- VERSION; then
+            echo "VERSION unchanged."
+            exit 0
+          fi
+          case "$HEAD_REF" in
+            release/*) echo "VERSION changed on $HEAD_REF (a release PR)." ;;
+            *)
+              echo "This PR changes VERSION but its branch is '$HEAD_REF', not release/*." >&2
+              echo "Version bumps come from the Prepare Release workflow:" >&2
+              echo "  gh workflow run release-prepare.yml --ref main -f bump=patch" >&2
+              exit 1
+              ;;
+          esac
+
   test:
     name: Test (Linux)
     runs-on: ubuntu-latest
+    env:
+      # Four test files at a time: each is a kernel-loading interpreter (~450 MB).
+      CADGEN_TEST_JOBS: "4"
 
     steps:
       - name: Check out repository
-        uses: actions/checkout@v4
-
-      - name: Check development layout
-        run: scripts/github-workflows/check-symlinks.sh
+        uses: actions/checkout@v7
 
       - name: Set up dependencies
         uses: ./.github/actions/setup-deps
@@ -58,20 +87,35 @@ jobs:
       - name: Start the bundled CAD Viewer
         run: scripts/test/test-viewer-launch.sh
 
+      # cadgen ships the JS it executes as package data. A package-data glob that stops
+      # matching produces a wheel that imports fine and fails on a user's machine, so the
+      # wheel is built and inspected here rather than trusted.
+      - name: Check cadgen wheel contents
+        run: |
+          python -m pip install build
+          scripts/release/check-wheel-contents.sh
+
       - name: Run documentation checks
         run: scripts/test/test-docs.sh
 
       - name: Run code tests
         run: scripts/test/test.sh
 
+      # Everything above runs against the source tree, where the repo root is importable
+      # and every asset is one directory away. This runs the CLIs the way a user gets
+      # them -- pip-installed, from a directory that is not this repo -- which is the only
+      # place a missing package-data glob or an accidental repo-relative path shows up.
+      - name: Run installed-mode checks
+        run: scripts/test/test-installed.sh
+
   # A SEPARATE JOB, never a matrix on `test` above. A matrix renames that job's check to
-  # "Test (ubuntu-latest)", and `Test` is a required status check on develop -- it would stop
+  # "Test (ubuntu-latest)", and `Test` is a required status check on main -- it would stop
   # being reported and every pull request would wait forever for a check that no longer exists.
   #
-  # Runs the TESTS only, not the hygiene steps the Linux job wraps them in. Bundle freshness,
-  # the symlink layout and the published-tree checks are properties of the repository, not of
-  # an operating system; bundling is deterministic, so re-checking it here would buy nothing
-  # and cost minutes. The platform risk is in file I/O -- locks, paths, subprocesses, file
+  # Runs the TESTS only, not the hygiene steps the Linux job wraps them in. Bundle freshness
+  # and the published-tree checks are properties of the repository, not of an operating
+  # system; bundling is deterministic, so re-checking it here would buy nothing and cost
+  # minutes. The platform risk is in file I/O -- locks, paths, subprocesses, file
   # URLs -- which is what the test suites exercise.
   #
   # Why this job exists at all: four of the last five user-reported bugs were Windows-only
@@ -81,16 +125,13 @@ jobs:
   test-windows:
     name: Test (Windows)
     runs-on: windows-latest
+    env:
+      # Four test files at a time: each is a kernel-loading interpreter (~450 MB).
+      CADGEN_TEST_JOBS: "4"
 
     steps:
-      # Before checkout: Git for Windows materializes symlinks as text files containing the
-      # target path unless this is set, and `develop` is a symlink layout by design. Without
-      # it the runtime paths under skills/ are plain files and the suite tests nothing real.
-      - name: Enable Git symlinks
-        run: git config --global core.symlinks true
-
       - name: Check out repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Set up dependencies
         uses: ./.github/actions/setup-deps
@@ -108,8 +149,7 @@ jobs:
         run: scripts/test/test-python.sh --keep-going
         shell: bash
 
-      # test-global.sh is deliberately absent, for the same reason the bundle and symlink
-      # steps are. It asserts REPOSITORY policy -- that manifests pin the canonical version,
+      # test-global.sh is deliberately absent, for the same reason the bundle step is. It asserts REPOSITORY policy -- that manifests pin the canonical version,
       # that lockfiles do not reach outside a skill, that the release scripts read the right
       # VERSION path at a given ref -- by executing the repo's own bash tooling. None of that
       # is shipped to a Windows user, and none of its answers can differ by operating system;

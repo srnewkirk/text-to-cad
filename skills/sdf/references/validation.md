@@ -1,6 +1,6 @@
 # SDF validation
 
-Every created or modified `.sdf` is validated with `python scripts/validate <file.sdf>` before the task is reported complete. The validator collects all findings in one pass (severity, code, XML path); `--strict` fails on warnings and `--format json` emits a machine-readable document. The bundled validation is dependency-light and intended to catch common structural errors. It is not a replacement for libsdformat, Gazebo, or target-simulator validation.
+Every created or modified `.sdf` is validated with `cadgen sdf validate <file.sdf>` before the task is reported complete. The validator collects all findings in one pass (severity, code, XML path); `--strict` fails on warnings and `--json` emits a machine-readable document. The bundled validation is dependency-light and intended to catch common structural errors. It is not a replacement for libsdformat, Gazebo, or target-simulator validation.
 
 ## Validation model
 
@@ -141,7 +141,7 @@ gz sdf --check path/to/file.sdf
 The CLI option should be:
 
 ```bash
-python scripts/validate path/to/file.sdf --gz-check auto
+cadgen sdf validate path/to/file.sdf --gz-check auto
 ```
 
 External checks should be recorded in the diagnostics report. A skipped optional check is not a bundled-validation failure unless the user requested `--gz-check required`.

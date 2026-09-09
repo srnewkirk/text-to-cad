@@ -10,8 +10,8 @@ Use this reference when editing SDF robot model structure, world structure, mesh
 4. Fill or update the design ledger before writing XML; keep the compact form as a comment block in the `.sdf` (see `references/design-ledger.md`).
 5. If the model describes a robot that already has a URDF, derive the SDF from that URDF rather than re-authoring geometry from scratch (see `references/interoperability.md`).
 6. For every pose and axis, state the frame in which it is expressed. Write `relative_to` / `expressed_in` explicitly wherever ambiguity would otherwise remain (see `references/frame-semantics.md`).
-7. Author the XML per `references/authoring-contract.md`. Compute derived numbers — inertia tensors, unit conversions — with formulas or a throwaway helper script; never freehand them.
-8. Validate with `python scripts/validate <file.sdf>`; review errors as structural guardrails, not exhaustive simulator proof.
+7. Author the XML per the golden skeletons in `references/examples.md`. Compute derived numbers — inertia tensors, unit conversions — with formulas or a throwaway helper script; never freehand them.
+8. Validate with `cadgen sdf validate <file.sdf>`; review errors as structural guardrails, not exhaustive simulator proof.
 9. Hand new or modified `.sdf` files to `$cad-viewer` for live viewer links when available.
 10. Run available smoke tests (`gz sdf --check`, simulator load).
 11. Report assumptions and skipped checks.

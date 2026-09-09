@@ -61,14 +61,14 @@ Likely causes:
 - invalid Python syntax
 - missing import
 - wrong build123d symbol
-- function not named `gen_step()`
+- function not named the `@step` model function
 - executable code outside the intended function has side effects
 
 Fix:
 
 - correct imports and syntax
-- ensure `gen_step()` returns the STEP-ready shape or compound
-- keep output paths in CLI commands, not inside `gen_step()`
+- ensure the `@step` model function returns the STEP-ready shape or compound
+- keep output paths in CLI commands, not inside the `@step` model function
 
 ### Invalid or missing geometry
 
@@ -175,7 +175,7 @@ Fix:
 - return one documented Viewer link per requested file
 - if unresolved, report the startup failure and rely on CLI facts/measurements plus snapshots for validation
 
-### CAD `scripts/snapshot` failure
+### CAD `cadgen step snapshot` failure
 
 Likely causes:
 
@@ -194,7 +194,7 @@ Fix:
 Use `diff` when the fix might have affected unrelated geometry:
 
 ```bash
-python scripts/inspect diff path/to/before.step path/to/after.step --planes
+cadgen step inspect diff path/to/before.step path/to/after.step --planes
 ```
 
 ## Reporting failed repairs

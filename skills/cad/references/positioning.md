@@ -32,6 +32,8 @@ root component
 
 A numeric `Location(...)` should usually correspond to a stated datum, offset, clearance, screw axis, face contact, or joint relationship.
 
+Place a shape with `Pos(...) * shape`, `Rot(...) * shape`, `Location(...) * shape`, or `shape.moved(loc)` — these move the shape and keep its geometry shared. Avoid `shape.located(loc)`: it deep-copies the geometry, which is slower and, for a child model placed in an assembly, breaks the cache's ability to reference the child instead of copying it.
+
 Group a functional unit — a bearing, a gearbox stage, a fastener set — into a sub-assembly node with `asm.add_module(name, children)` when it is placed, reasoned about, or repeated as a unit; nested occurrence refs such as `#o1.12.1` then stay meaningful.
 
 ## Part-local positioning
@@ -79,7 +81,7 @@ Avoid untraceable placement constants inside geometry calls. Put all meaningful 
 Use `AssemblyHelper` for generated assembly scripts. It keeps the LLM-facing code intent-focused while still using native build123d labels, `Joint` objects, and `Compound` assemblies.
 
 ```python
-from build123d import *
+from cadgen import build123d as bd, step
 from cadgen.assembly import AssemblyHelper
 
 base_height = 30.0
@@ -93,21 +95,23 @@ lid = asm.add(make_lid(), "lid")
 base_seat = asm.rigid_frame(
     base,
     "lid_seat",
-    Location((0, 0, base_height / 2)),
+    bd.Location((0, 0, base_height / 2)),
 )
 lid_underside = asm.rigid_frame(
     lid,
     "underside",
-    Location((0, 0, -lid_thickness / 2)),
+    bd.Location((0, 0, -lid_thickness / 2)),
 )
 
 asm.face_to_face(base_seat, lid_underside, offset=gasket_gap)
 
-def gen_step():
+
+@step
+def model():
     return asm.build()
 ```
 
-The fixed target is listed first and the moving target second. In the example above, the base stays fixed and the lid moves. The helper records the relationship in source and calls native build123d `connect_to()` under the hood; exported STEP contains the resolved static placement and native assembly labels, not persistent external constraints.
+The fixed target is listed first and the moving target second. In the example above, the base stays fixed and the lid moves. The helper is a positioning tool: it calls native build123d `connect_to()` under the hood and its whole output is the placed geometry — nothing about the relationship is recorded or exported. The STEP contains the resolved static placement and native assembly labels, not persistent constraints. Motion that should persist (joints the viewer animates, pose presets) is declared with `kinematics=` on the decorator (`references/kinematics.md`), not with the positioning helper.
 
 Use helper labels intentionally:
 
@@ -124,23 +128,35 @@ Use the frame method that matches native build123d joint inputs: `rigid_frame()`
 
 ## Child dependencies
 
-When a generated assembly's `gen_step()` builds on a child part, that child is a **dependency** of the parent generator. Wire it in by the child's kind (see "Generated vs imported STEP" in `step-generation.md`):
+A child part is wired in one of two modes — a **CHILD** (a model in this
+project: import its function and call it; the default) or an **INPUT** (a
+document read via `cadgen.read_step`: imported parts, or a generated part the
+user explicitly asked to decouple). The modes, what a rebuild tracks, and the
+code live in "Composing on other parts" in `step-generation.md`.
+Positioning-wise the two are identical: a child is a shape; place it with the
+same frames and mates as authored geometry.
 
-- **Generated child** (its source is a `gen_step()` script): path-load the child `.step.py` and call its `gen_step()` — or the underlying build function it returns — inside the parent's `gen_step`, composing from the live generator. You cannot `import` the child by name; load it by path (see "Entry generators are named `<name>.step.py`" in `step-generation.md` for the snippet). Do NOT route a generated child through an exported STEP; keep the dependency at the source level so a child edit flows into the parent on the next rebuild and there are no committed `.step` bytes to keep in sync.
-- **Imported child** (the STEP is its own source — purchased, downloaded, or otherwise not generated here): import it through the cached `cadgen.step_scene.import_step` util (see "Imported components" below).
-- **Decoupling a generated child — only on explicit request:** if the user explicitly asks for a generated child NOT to be a direct dependency of the parent, export that child to a STEP file and then import it as an imported child via `import_step`. This is never the default — by default a generated child is composed directly from its `gen_step`.
+**Place a child with `Pos/Rot/Location * child` or `child.moved(loc)` — never
+`child.located(loc)`.** `located()` deep-copies the geometry, so the parent
+owns a duplicate component instead of linking to the child's tree, and it
+also discards any rotation the shape already carried (`build123d-modeling.md`).
+`AssemblyHelper` and build123d joints place through `connect_to()` and keep
+the link. A mirrored placement is not a placement at all — STEP cannot express
+a reflection — so a right-hand part is its own model built from the shared
+factory (`step-generation.md`, "Mirrored parts are their own models").
 
 ## Imported components
 
-For purchased or downloaded parts (see `$step-parts`), import the STEP file and add it like any authored part. Always import STEP parts through `cadgen.step_scene.import_step`, not `build123d.import_step` — it is a drop-in that returns a topologically and chromatically identical shape but reuses an inline `__cadgen__` binary-BREP cache, so re-imports of the same part (an assembly with repeated fasteners or servos) and rebuilds skip re-parsing the text STEP:
+For purchased or downloaded parts (see `$step-parts`), read the STEP file
+with `cadgen.read_step` (never `build123d.import_step` — the whys are in
+"Composing on other parts" in `step-generation.md`) and add it like any
+authored part.
 
 ```python
-from cadgen.step_scene import import_step
+from cadgen import read_step
 
-servo = asm.add(import_step("models/parts/sg90_servo.step"), "servo")
+servo = asm.add(read_step("models/parts/sg90_servo.step"), "servo")
 ```
-
-It writes a hidden `__cadgen__/` cache directory next to each imported STEP — add `__cadgen__/` to your `.gitignore`. It falls back to `build123d.import_step` automatically when the cache cannot be written, so no extra error handling is needed.
 
 Imported geometry was not authored here, so do not assume its origin or orientation. Derive mating frames from inspected geometry: run `refs --facts --planes --positioning` and `measure` against the imported part, then define `asm.rigid_frame(...)` locations from the measured faces, axes, and bolt patterns. Validate the resulting mate exactly like an authored one.
 
@@ -180,8 +196,8 @@ When only final static placement matters and no meaningful joint datum exists, u
 7. Generate the assembly through the Python source, not by re-importing the generated STEP (see `step-generation.md`):
 
 ```bash
-python scripts/gen path/to/assembly.step.py
-python scripts/inspect refs path/to/assembly.step --facts --planes --positioning
+python path/to/assembly.py
+cadgen step inspect refs path/to/assembly.step --facts --planes --positioning
 ```
 
 ## CLI alignment validation
@@ -189,7 +205,7 @@ python scripts/inspect refs path/to/assembly.step --facts --planes --positioning
 After generation, select moving and target refs from the local selector refs returned by `refs --positioning` and compute deltas:
 
 ```bash
-python scripts/inspect align path/to/assembly.step \
+cadgen step inspect align path/to/assembly.step \
   --moving '#moving_selector' \
   --target '#target_selector' \
   --mode flush \
@@ -203,7 +219,7 @@ Use `--mode flush` for coplanar face alignment. Use `--mode center` for centerli
 Use `frame` to inspect an occurrence or selector's world frame:
 
 ```bash
-python scripts/inspect frame path/to/assembly.step '#selector'
+cadgen step inspect frame path/to/assembly.step '#selector'
 ```
 
 Use this when:
@@ -219,7 +235,7 @@ Use this when:
 Use `measure` for scalar checks:
 
 ```bash
-python scripts/inspect measure path/to/assembly.step \
+cadgen step inspect measure path/to/assembly.step \
   --from '#selector_a' \
   --to '#selector_b' \
   --axis z

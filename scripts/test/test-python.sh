@@ -27,35 +27,31 @@ run_suite() {
 
 cd "$REPO_ROOT"
 
-# Turn the render-package write-lock assertion into a hard failure for tests. In
-# production require_write_lock() only warns -- a missing lock must never be the reason a
-# user's build fails -- so CI is the only place the contract is actually enforced.
-export CADGEN_STRICT_LOCKS=1
+# Isolate the shared caches (component store + op-memo disk tier) from the
+# developer's real ~/.cache/cadgen: tests assert exact built/reused counts and
+# byte-level outputs, and a populated user store would satisfy builds the test
+# expects to run (and test runs would pollute the user's cache in return).
+CADGEN_TEST_CACHE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/cadgen-test-store.XXXXXX")"
+trap 'rm -rf "$CADGEN_TEST_CACHE_DIR"' EXIT
+export CADGEN_CACHE_DIR="$CADGEN_TEST_CACHE_DIR"
 
+# The cadgen package suite includes the CAD Viewer backend (tests/python/packages/cadgen/viewer):
+# the server is cadgen.viewer, and this is the one runner that reaches every pull request --
+# through test.sh on Linux and directly in the Windows job. Windows matters most of all for the
+# viewer: path handling, locks, subprocesses and file URLs are precisely the class of bug that
+# has only ever shown up there.
 run_suite "cadgen package Python tests" "tests/python/packages/cadgen" "packages/cadgen/src"
 
 while IFS= read -r skill; do
   test_dir="tests/python/skills/$skill"
   if [ -d "$test_dir" ]; then
-    skill_paths=("skills/$skill/scripts")
-    if [ "$skill" = "cad" ] || [ "$skill" = "dxf" ]; then
-      skill_paths+=("skills/$skill/scripts/packages/cadgen/src")
-    fi
-    run_suite "$skill skill Python tests" "$test_dir" "${skill_paths[@]}"
+    # Skills no longer vendor cadgen; they import the distribution. In a checkout that is
+    # the repo's own source, so put it on the path rather than depending on whatever the
+    # interpreter happens to have installed.
+    run_suite "$skill skill Python tests" "$test_dir" \
+      "skills/$skill/scripts" "packages/cadgen/src"
   fi
 done < <("$LIST_SKILLS_SCRIPT")
-
-run_suite "MoveIt2 server Python tests" "tests/python/viewer/moveit2_server" "viewer/moveit2_server"
-
-# The CAD Viewer backend keeps its tests beside the package it covers rather
-# than under tests/, so name the directory explicitly. It owns the only cross-process
-# coverage of the generation lock (test_artifact.py drives a real second process and
-# SIGKILLs it), which is why it must run in CI.
-# packages/cadgen/src is on the path because the viewer server imports cadgen's
-# stdlib-only modules directly (coordination, source_hash) rather than reimplementing
-# them. Without it an installed/editable cadgen from another checkout wins and the
-# coordination package is missing.
-run_suite "CAD Viewer backend Python tests" "viewer/server_py/tests" "viewer" "packages/cadgen/src"
 
 if [ "${#failed_suites[@]}" -gt 0 ]; then
   printf '\n==> FAILING SUITES (%d)\n' "${#failed_suites[@]}"

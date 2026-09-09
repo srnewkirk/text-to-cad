@@ -6,8 +6,7 @@ Create or update this ledger before writing SDF XML. The ledger's canonical home
 
 | Field | Value |
 |---|---|
-| Output path | |
-| Source file | |
+| SDF path | |
 | SDF version | `1.12` unless constrained |
 | Document kind | model / world / model-in-world |
 | Target consumer | Gazebo / other simulator / visualization-only / model package |
@@ -104,8 +103,7 @@ If a value cannot be derived or safely assumed, generate a minimal placeholder o
 ## Compact response template
 
 ```text
-SDF source: path/to/source.py
-Generated target: path/to/output.sdf
+SDF file: path/to/model.sdf
 Target consumer: Gazebo Harmonic, SDF 1.12
 Bundled validation: passed with 2 warnings
 External checks: gz sdf --check skipped, gz not installed
