@@ -96,6 +96,15 @@ class DeadWorkerMessage(unittest.TestCase):
             # The rerun quotes what the shell needs quoted.
             self.assertIn("CADGEN_DAEMON=0 cadgen inspect build 'a b.step' out.step", text)
 
+    def test_windows_access_violation_routes_to_wer(self):
+        text = client.worker_died_message(
+            PAYLOAD,
+            {"detail": "worker 7 exited with 0xC0000005 (STATUS_ACCESS_VIOLATION)"},
+        )
+        self.assertIn("Windows Error Reporting", text)
+        self.assertIn("faulting module", text)
+        self.assertIn("NOT retried", text)
+
     def test_a_model_script_run_is_named_and_rerun_as_python(self):
         # The decorator's warm handoff: prog `python <name>`, argv `[<path>, *args]`.
         payload = {"tool": "run", "prog": "python box.py", "argv": ["/work/src/box.py", "--force"]}

@@ -3,12 +3,27 @@
 This repo is a workbench for CAD-related agent skills. Treat `skills/` as the
 product and `models/` as the shared fixture/artifact area.
 
+## Personal Fork Authorization Boundary
+
+- This checkout is maintained for `srnewkirk/text-to-cad`. Community upstream
+  is read-only comparison input unless the user explicitly authorizes a named
+  external action.
+- Source changes, branches, commits, pushes, releases, and issues target the
+  personal fork by default. Never publish to `earthtojake/text-to-cad` or run
+  its release workflows without explicit authorization for that destination.
+- The installable personal plugin is distributed only as
+  `cad@homelab-plugins` from `srnewkirk/codex-plugin-marketplace`. Do not install
+  it directly from this checkout, a worktree, symlink, community marketplace,
+  or community release.
+- Upstream release procedures below are useful implementation reference, not
+  authorization to publish to PyPI, deploy upstream documentation, create an
+  upstream tag or GitHub Release, or contact the upstream project.
+
 ## Branch First
 
-`main` is the only long-lived branch: the source tree, what installers clone,
-and what releases are cut from. Branch from `main` and open PRs against `main`;
-never push it directly. There is no development symlink layout — every path in
-the tree is the real file.
+`main` is the production source tree. Branch from `main`, open personal-fork
+PRs against `main`, and never push it directly. There is no development symlink
+layout — every path in the tree is the real file.
 
 ## Release Workflow
 

@@ -423,9 +423,16 @@ def worker_died_message(payload: dict, death: dict) -> str:
     prog, args, _cold = _job_words(payload)
     job = " ".join([prog, *args])
     detail = str(death.get("detail") or "worker closed the connection")
+    windows_diagnostic = ""
+    if "STATUS_ACCESS_VIOLATION" in detail or "0XC0000005" in detail.upper():
+        windows_diagnostic = (
+            " Windows reported a native access violation; check Windows Error Reporting "
+            "for the faulting module before changing the model, graphics driver, or runtime."
+        )
     return (
         f"cadgen-daemon: the warm worker running `{job}` died mid-job ({detail}) -- "
-        "most likely out of memory, or a crash in the geometry kernel. The job was NOT "
+        "most likely out of memory, or a crash in the geometry kernel."
+        f"{windows_diagnostic} The job was NOT "
         "retried. Run it cold, in its own process, to see the failure directly:\n"
         f"{cold_rerun_instructions(payload)}"
     )

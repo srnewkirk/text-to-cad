@@ -12,6 +12,7 @@ import {
   normalizeServerLifetimeMs,
   scheduleProcessShutdown,
 } from "./scripts/serverLifetime.mjs";
+import { resolveViewerPython } from "./scripts/pythonExecutable.mjs";
 
 // Dev deliberately lives on Vite's own canonical port, NOT the bundled
 // launcher's 3245: dev is a hand-managed foreground process that never enters
@@ -81,10 +82,10 @@ function resolveDirectoryRoot() {
 // `npm run dev` failed on every fresh clone with a complaint about a missing
 // build.
 //
-// VIEWER_PYTHON names the interpreter that has cadgen installed, defaulting to
-// python3 — usually WRONG in a checkout, where that interpreter is the repo
-// venv. The resolved interpreter is logged at startup so an exit is
-// attributable. See CONTRIBUTING.md for the checkout recipe.
+// VIEWER_PYTHON names the interpreter that has cadgen installed. Without it,
+// prefer a nearby project virtual environment before using the platform PATH
+// fallback. The resolved interpreter and source are logged at startup so an
+// exit is attributable. See CONTRIBUTING.md for the checkout recipe.
 //
 // VIEWER_BACKEND_URL attaches to a backend you started yourself, which is also
 // how you put a debugger on it.
@@ -101,7 +102,8 @@ async function startDevBackend() {
     return target;
   }
 
-  const python = process.env.VIEWER_PYTHON || "python3";
+  const pythonResolution = resolveViewerPython({ appRoot: viewerAppRoot });
+  const python = pythonResolution.executable;
   // The backend has no directory flag: its cwd IS the directory it serves. Dev
   // still decides which directory that is (scripts/directoryRoot.mjs reads
   // INIT_CWD, which npm sets for `npm run dev`); the hand-off is the child's
@@ -142,7 +144,9 @@ async function startDevBackend() {
 
   const announced = await readFirstJsonLine(child.stdout);
   const target = String(announced.url || "").replace(/\/+$/u, "");
-  console.info(`CAD Viewer backend: ${target} (${python}, serving ${directoryRoot})`);
+  console.info(
+    `CAD Viewer backend: ${target} (${python}, ${pythonResolution.source}, serving ${directoryRoot})`,
+  );
   return target;
 }
 

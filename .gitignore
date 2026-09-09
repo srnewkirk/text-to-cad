@@ -17,6 +17,8 @@ htmlcov/
 # Local environments and caches
 .venv
 .cache
+.cadgen-cache/
+.tmp-test/
 .agents/
 .vite
 .vercel
