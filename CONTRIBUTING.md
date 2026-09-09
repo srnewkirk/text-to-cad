@@ -329,6 +329,20 @@ Linux release path; reproducing those bytes on Windows is not a prerequisite
 for using or developing the Windows runtime. Keep runtime failures and release-
 artifact freshness failures reported as separate boundaries.
 
+On a Windows development host, reproduce the Linux-owned bundle check through
+WSL 2 without mixing Linux dependencies into the Windows checkout:
+
+```powershell
+powershell.exe -NoProfile -ExecutionPolicy Bypass -File .\scripts\dev\build-in-wsl.ps1
+```
+
+The launcher resolves the current commit, checks it out into an isolated
+WSL-native mirror, installs the locked Python 3.12 and Node 22 dependencies,
+and runs `scripts/bundle/bundle.sh --check`. It never publishes, promotes, or
+installs the plugin. Pass `-Mode Build` only to rebuild inside the mirror; it
+does not copy generated files back to the Windows checkout. Ubuntu must provide
+Node 22, npm, `uv` with Python 3.12 available, and ordinary build tools.
+
 ## Releases
 
 Normal development PRs should not bump `VERSION`; release versions are reserved

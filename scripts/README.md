@@ -8,6 +8,7 @@ step; nothing else belongs here (one-off helpers go in `tmp/`).
 | ---- | ------- |
 | Build the packaged runtime | `scripts/bundle/bundle.sh --clean` |
 | Check the packaged runtime is fresh | `scripts/bundle/bundle.sh --check` |
+| Check the packaged runtime from Windows through WSL 2 | `scripts/dev/build-in-wsl.ps1` |
 | Run code tests | `scripts/test/test.sh` |
 | Run docs checks | `scripts/test/test-docs.sh` |
 | Check the release version and skill pins | `scripts/release/check-version.sh` |
@@ -103,6 +104,11 @@ step; nothing else belongs here (one-off helpers go in `tmp/`).
 
 `git-hooks/pre-commit` — the body `.githooks/pre-commit` runs: `bundle.sh --check`
 when staged paths touch `packages`, `apps`, `skills` or `scripts/bundle`.
+
+`dev/build-in-wsl.ps1` and `dev/wsl-build.sh` — Windows-facing launcher and
+Linux driver for reproducing the canonical bundle check in an isolated
+WSL-native mirror. The default is a freshness check; neither command publishes,
+promotes, installs, or copies generated output into the Windows checkout.
 
 `utils/list-skills.sh` — prints every `skills/*/SKILL.md` directory. Used by the
 install scripts and `test-python.sh`.
