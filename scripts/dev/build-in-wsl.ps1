@@ -21,20 +21,32 @@ if ($LASTEXITCODE -ne 0 -or $commit -notmatch '^[0-9a-f]{40}$') {
 }
 
 $linuxSource = (& wsl.exe -d $Distribution --exec wslpath -a $sourceRepository).Trim()
-$linuxDriver = (& wsl.exe -d $Distribution --exec wslpath -a (Join-Path $PSScriptRoot "wsl-build.sh")).Trim()
 $linuxUser = (& wsl.exe -d $Distribution --exec id -un).Trim()
-if ($LASTEXITCODE -ne 0 -or @($linuxSource, $linuxDriver, $linuxUser) -contains "") {
+if ($LASTEXITCODE -ne 0 -or @($linuxSource, $linuxUser) -contains "") {
     throw "Unable to resolve paths and user in WSL distribution '$Distribution'."
 }
 if ([string]::IsNullOrWhiteSpace($MirrorDirectory)) {
     $MirrorDirectory = "/home/$linuxUser/.cache/text-to-cad/build-mirror"
 }
 
-& wsl.exe -d $Distribution --exec bash $linuxDriver `
-    --source $linuxSource `
-    --commit $commit `
-    --mirror $MirrorDirectory `
-    --mode $Mode.ToLowerInvariant()
-if ($LASTEXITCODE -ne 0) {
-    throw "WSL CAD $($Mode.ToLowerInvariant()) failed with exit code $LASTEXITCODE."
+$temporaryDriver = [IO.Path]::Combine([IO.Path]::GetTempPath(), "text-to-cad-wsl-build-$([guid]::NewGuid().ToString('N')).sh")
+try {
+    $driverText = [IO.File]::ReadAllText((Join-Path $PSScriptRoot "wsl-build.sh")).Replace("`r`n", "`n")
+    [IO.File]::WriteAllText($temporaryDriver, $driverText, [Text.UTF8Encoding]::new($false))
+    $linuxDriver = (& wsl.exe -d $Distribution --exec wslpath -a $temporaryDriver).Trim()
+    if ($LASTEXITCODE -ne 0 -or [string]::IsNullOrWhiteSpace($linuxDriver)) {
+        throw "Unable to stage the WSL build driver."
+    }
+
+    & wsl.exe -d $Distribution --exec bash $linuxDriver `
+        --source $linuxSource `
+        --commit $commit `
+        --mirror $MirrorDirectory `
+        --mode $Mode.ToLowerInvariant()
+    if ($LASTEXITCODE -ne 0) {
+        throw "WSL CAD $($Mode.ToLowerInvariant()) failed with exit code $LASTEXITCODE."
+    }
+}
+finally {
+    Remove-Item -LiteralPath $temporaryDriver -Force -ErrorAction SilentlyContinue
 }
