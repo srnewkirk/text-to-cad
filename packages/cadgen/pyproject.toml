@@ -4,13 +4,13 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cadgen"
-version = "0.5.1"
+version = "0.5.2"
 description = "STEP-first CAD artifact generation runtime: build123d STEP/GLB/topology generation, validation, and inspection for CAD agent skills."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
 requires-python = ">=3.11"
-authors = [{ name = "earthtojake" }]
+authors = [{ name = "srnewkirk" }]
 keywords = ["cad", "step", "glb", "build123d", "parametric", "agent-skills"]
 classifiers = [
   "Development Status :: 4 - Beta",
@@ -53,9 +53,9 @@ dependencies = [
 snapshot = ["playwright"]
 
 [project.urls]
-Homepage = "https://github.com/earthtojake/text-to-cad"
-Repository = "https://github.com/earthtojake/text-to-cad"
-Issues = "https://github.com/earthtojake/text-to-cad/issues"
+Homepage = "https://github.com/srnewkirk/text-to-cad"
+Repository = "https://github.com/srnewkirk/text-to-cad"
+Issues = "https://github.com/srnewkirk/text-to-cad/issues"
 
 [project.scripts]
 cadgen = "cadgen.cli:main"
