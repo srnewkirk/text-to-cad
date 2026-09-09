@@ -205,8 +205,11 @@ The essentials; `references/step-generation.md` has the code and the edge cases.
 **Workers.** A warm daemon is on by default: each model gets a persistent
 worker (a second, an *extra*, when the model is asked for while already
 building); spares stand by so a new model never pays the import; idle workers
-unbind after ten minutes. Running builds are limited to one per core
-(`CADGEN_JOBS` overrides); a parent waiting on its children holds no slot.
+unbind after ten minutes. Running builds follow the platform's native-worker
+limit; Windows defaults to at most four and reduces further under memory
+pressure (`CADGEN_JOBS` overrides). Component and validation pools use the same
+default policy (`CADGEN_COMPONENT_WORKERS` and `CADGEN_VALIDATE_WORKERS`
+override their respective pools); a parent waiting on its children holds no slot.
 `CADGEN_DAEMON=0` uses transient workers spawned for that one run — still
 parallel, still the same store — and is the mode for tests and debugging.
 `cadgen daemon status` lists workers, spares and the running/queued jobs.

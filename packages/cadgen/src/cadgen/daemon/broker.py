@@ -1,7 +1,7 @@
 """The broker: the pool's two static mechanisms that span processes.
 
-1. **Job slots** — one running build per core. A counting semaphore of
-   ``N = os.cpu_count()`` (``CADGEN_JOBS`` overrides), FIFO. A job takes a slot
+1. **Job slots** — bounded native CAD work. The default follows the machine but
+   is capped by Windows memory policy (``CADGEN_JOBS`` overrides), FIFO. A job takes a slot
    before its body runs and holds it through its emit; it YIELDS the slot while it
    waits for children it forced (a waiting parent does no kernel work) and reacquires
    — queuing again if it must — when they are done. That yield is the deadlock
@@ -49,7 +49,9 @@ def job_limit() -> int:
             return max(1, int(raw))
         except ValueError:
             pass
-    return max(1, os.cpu_count() or 1)
+    from cadgen._internal.runtime_limits import kernel_worker_ceiling
+
+    return kernel_worker_ceiling()
 
 
 # --- the broker itself -----------------------------------------------------------------

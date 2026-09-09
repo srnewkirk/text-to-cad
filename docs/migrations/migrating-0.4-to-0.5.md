@@ -686,8 +686,10 @@ draws, watertight, colored, and byte-deterministic across repeated exports.
 
 #### The daemon and the pool
 
-Every build runs on a pool of warm worker processes, one bound per model, with
-a job limit of one per core (`CADGEN_JOBS` overrides). You start nothing — the
+Every build runs on a pool of warm worker processes, one bound per model. The
+job limit follows the platform's native-worker policy: Windows defaults to at
+most four and reduces further under memory pressure (`CADGEN_JOBS` overrides).
+You start nothing — the
 first call spawns the daemon. `cadgen daemon status` shows its workers and the
 jobs in flight. There are **no locks**: `--lock-timeout`, "contended" and
 "skipped" outcomes are gone; a build never waits on another and never cancels

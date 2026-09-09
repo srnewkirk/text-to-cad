@@ -339,7 +339,9 @@ def parallel_worker_count(work_count: int, *, env_var: str) -> int:
         return max(1, min(requested, work_count)) if requested > 1 else 1
     if work_count < 6:
         return 1
-    return max(1, min((os.cpu_count() or 2) - 2, work_count, 8))
+    from cadgen._internal.runtime_limits import kernel_worker_ceiling
+
+    return max(1, min(kernel_worker_ceiling(), work_count, 8))
 
 
 def _component_build_worker_count(missing_count: int) -> int:

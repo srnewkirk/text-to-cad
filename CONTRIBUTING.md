@@ -320,6 +320,15 @@ files — cadgen's Node builders and snapshot runtime built from
 `packages/cadgen-js` — and version metadata derived from `VERSION`. The viewer
 client (`_runtime/viewer`) is gitignored and built only for the wheel.
 
+### Runtime checks versus release artifacts
+
+Windows is a supported cadgen runtime and has its own CI job for filesystem,
+locking, subprocess, path, Viewer, and native CAD behavior. The committed Node,
+snapshot, and Viewer bundles are release artifacts produced and verified by the
+Linux release path; reproducing those bytes on Windows is not a prerequisite
+for using or developing the Windows runtime. Keep runtime failures and release-
+artifact freshness failures reported as separate boundaries.
+
 ## Releases
 
 Normal development PRs should not bump `VERSION`; release versions are reserved

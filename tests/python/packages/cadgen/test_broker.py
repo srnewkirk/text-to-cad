@@ -105,9 +105,11 @@ class Slots(PrivateBrokerFixture):
                 with broker.yielded():
                     pass
 
-    def test_the_limit_is_the_core_count_unless_overridden(self):
+    def test_the_limit_uses_the_native_worker_policy_unless_overridden(self):
+        from cadgen._internal.runtime_limits import kernel_worker_ceiling
+
         with mock.patch.dict(os.environ, {"CADGEN_JOBS": ""}):
-            self.assertEqual(broker.job_limit(), max(1, os.cpu_count() or 1))
+            self.assertEqual(broker.job_limit(), kernel_worker_ceiling())
         with mock.patch.dict(os.environ, {"CADGEN_JOBS": "3"}):
             self.assertEqual(broker.job_limit(), 3)
         with mock.patch.dict(os.environ, {"CADGEN_JOBS": "0"}):
