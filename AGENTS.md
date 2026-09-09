@@ -34,21 +34,19 @@ any branch but `release/*`. Releases are two GitHub Actions workflows:
 - `Prepare Release` (`release-prepare.yml`, manual): opens and merges a release
   PR against `main` that bumps `VERSION`, the derived metadata and every
   skill's `cadgen==` pin together.
-- `Publish Release` (`release-publish.yml`): fires on the push that merge makes.
-  Bundles, tests, builds the `cadgen` wheel, installs and exercises it, keeps
-  the distribution as a workflow artifact, then — on `main` only — uploads to
-  PyPI, deploys the docs site, and tags (`v<VERSION>`; releases before 0.5.0
-  are bare `0.4.x` tags) + GitHub-Releases that same merged commit.
+- `Publish Release` (`release-publish.yml`, manual): never runs from a push or
+  merge. Its default `publish=false` is a build-test rehearsal. Only an
+  explicitly authorized dispatch on `main` with `publish=true` may upload to
+  PyPI, deploy docs, create a tag, or create a GitHub Release.
 
 When asked to publish, make, or ship a release, dispatch `Prepare Release` on
 `main`. Never pick the semver bump yourself: if the request does not name patch,
 minor, major, or an exact version, ask which one before dispatching. To resume a
 run that uploaded the wheel but failed before the tag or the docs deploy, or to
-republish the current head, dispatch `Publish Release` on `main` (`publish=false`
-leaves the GitHub Release as a draft). `target=build-test` on `Prepare Release`
-is the rehearsal — the same PR against `build-test`, whose pushes run `Publish
-Release` without PyPI, docs or tag — and is never a release; use it only when the
-user explicitly asks to test the pipeline.
+republish the current head, dispatch `Publish Release` on `main` with explicit
+`publish=true` authorization. `target=build-test` on `Prepare Release` is the
+rehearsal target; dispatch `Publish Release` there manually with
+`publish=false`. It never publishes to PyPI, docs, tags, or GitHub Releases.
 
 The standalone `Deploy Docs` workflow redeploys the docs site from a ref
 (default `main`, or a release tag) without running a release.

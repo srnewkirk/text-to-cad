@@ -3,16 +3,17 @@ name: Prepare Release
 # Half one of a release: the version bump, as a PR. Bumps VERSION, stamps the derived
 # package/plugin metadata (sync-version.mjs) and every skill's cadgen pin
 # (pin-cadgen-requirements.sh), opens `release/X.Y.Z` against the target branch and
-# merges it. That merge is what fires the other half, Publish Release
-# (release-publish.yml), which builds, tests, uploads and tags the merged commit.
+# merges it. That merge never publishes. Publish Release (release-publish.yml)
+# must be dispatched separately after the merged commit is reviewed.
 #
-# `target` defaults to main. `build-test` is the rehearsal: the same PR against a
-# branch whose pushes run Publish Release WITHOUT the irreversible steps (no PyPI, no
-# docs deploy, no tag). A rehearsal consumes a version number on build-test only; the
-# repository's tags decide what is "released", so main is unaffected.
+# `target` defaults to main. `build-test` is the rehearsal target: merge the same PR
+# there, then manually dispatch Publish Release with publish=false. A rehearsal consumes
+# a version number on build-test only; the repository's tags decide what is "released",
+# so main is unaffected.
 #
 # There is no bump=none here: republishing or resuming the current head of main is
-# `gh workflow run release-publish.yml --ref main`.
+# `gh workflow run release-publish.yml --ref main -f publish=true`, after explicit
+# authorization for the external publication effects.
 
 on:
   workflow_dispatch:
@@ -153,7 +154,7 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
           branch="release/$VERSION"
-          body="Bumps VERSION, derived package/plugin metadata and every skill's cadgen pin to $VERSION. Created by Prepare Release, which merges it into $TARGET immediately; the merge runs Publish Release."
+          body="Bumps VERSION, derived package/plugin metadata and every skill's cadgen pin to $VERSION. Created by Prepare Release, which merges it into $TARGET immediately. Publication requires a separate, explicitly authorized Publish Release dispatch."
 
           git checkout -B "$branch"
           git add -A
@@ -186,8 +187,8 @@ jobs:
           echo "url=$pr_url" >> "$GITHUB_OUTPUT"
           echo "Release PR: $pr_url"
 
-      # Merged through the API with the PAT, as before; the merge event is what starts
-      # Publish Release on the target branch. The release branch is deleted afterwards.
+      # Merged through the API with the PAT, as before. This does not start Publish
+      # Release; publication is a separate manual action. The branch is then deleted.
       - name: Merge release pull request
         if: ${{ !inputs.dry_run }}
         env:
@@ -224,4 +225,4 @@ jobs:
           git fetch --no-tags origin "+$TARGET:refs/remotes/origin/$TARGET"
           sha="$(git rev-parse "origin/$TARGET^{commit}")"
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
-          echo "Release ${{ steps.version.outputs.version }} merged into $TARGET at $sha; Publish Release runs on that push."
+          echo "Release ${{ steps.version.outputs.version }} merged into $TARGET at $sha. Publish Release requires a separate manual dispatch."
