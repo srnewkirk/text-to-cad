@@ -355,9 +355,9 @@ they are wrong.
 ### Shipping a release
 
 Two GitHub Actions workflows, one release. `Prepare Release`
-(`release-prepare.yml`, manual) is the version bump as a PR; `Publish Release`
-(`release-publish.yml`) fires on the push its merge makes and does everything
-else to that one commit.
+(`release-prepare.yml`, manual) is the version bump as a PR. Its merge does not
+publish. `Publish Release` (`release-publish.yml`) is a separate manual action
+against that merged commit.
 
 ```bash
 gh workflow run release-prepare.yml --ref main -f bump=patch
@@ -373,7 +373,13 @@ metadata (`sync-version.mjs`) and every skill's `cadgen==` pin
 merges it through the API (the PAT, as before — no "allow auto-merge" setting
 is involved) and deletes the branch. The merged commit is THE release commit.
 
-`Publish Release`, on that push:
+After reviewing the merged commit, explicitly dispatch `Publish Release`:
+
+```bash
+gh workflow run release-publish.yml --ref main -f publish=true
+```
+
+The workflow then:
 
 1. `check-version.sh`, then the gate: `VERSION` must be past the latest release
    tag (either spelling — `scripts/release/release-tags.sh` is the one place
@@ -386,17 +392,18 @@ is involved) and deletes the branch. The merged commit is THE release commit.
    viewer --help`, `cadgen doctor skills/cad-viewer` — then
    `scripts/test/test-installed.sh`; the distribution is uploaded as a workflow
    artifact (`cadgen-<version>`).
-4. **On `main` only:** PyPI upload (`skip-existing`, so a rerun is a no-op),
+4. **Only on an explicitly authorized `main` dispatch with `publish=true`:**
+   PyPI upload (`skip-existing`, so a rerun is a no-op),
    `Deploy Docs`, then the `v<VERSION>` tag and the GitHub Release. Nothing is
    committed or pushed to `main` after the release PR merge: the tag points at
    the source commit, and `git describe` on `main` is meaningful.
 
 ### Resuming and republishing
 
-Dispatch `Publish Release` on `main`:
+Dispatch `Publish Release` on `main` with explicit publication authorization:
 
 ```bash
-gh workflow run release-publish.yml --ref main            # or -f publish=false for a draft
+gh workflow run release-publish.yml --ref main -f publish=true
 ```
 
 It runs against the current head. A run that uploaded the wheel and failed
@@ -407,15 +414,16 @@ version that needs re-preparing goes through `Prepare Release` again.
 
 ### Rehearsing on `build-test`
 
-`build-test` is a long-lived branch whose only job is to run `Publish Release`
-without side effects. Every push to it (including a rehearsal release PR merge)
-runs the full pipeline through the install test and the artifact upload, then
+`build-test` is a long-lived branch for running `Publish Release` without side
+effects. A manual dispatch with the default `publish=false` runs the full
+pipeline through the install test and the artifact upload, then
 prints what it WOULD have uploaded, deployed and tagged
 (`publish-github-release.sh --dry-run`) and stops. To rehearse a release:
 
 ```bash
 git push origin main:build-test                                    # or any branch under test
 gh workflow run release-prepare.yml --ref main -f bump=patch -f target=build-test
+gh workflow run release-publish.yml --ref build-test -f publish=false
 ```
 
 The gate compares the rehearsal's `VERSION` against the repository's REAL tags,

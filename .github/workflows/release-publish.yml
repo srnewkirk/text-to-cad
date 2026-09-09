@@ -1,33 +1,25 @@
 name: Publish Release
 
-# Half two of a release: everything that happens to the merged release commit. Runs on
-# every push to main (the merge Prepare Release makes, or any other push -- the gate
-# below decides whether there is anything to publish) and on every push to build-test,
-# the rehearsal branch. Manual dispatch republishes or resumes the current head of a
-# branch: a run that uploaded the wheel and died before the tag is finished by
-# dispatching this on main again (PyPI's skip-existing makes the re-upload a no-op).
+# Half two of a release: everything that happens to the merged release commit. It is
+# manual-only: merging source or a version bump never authorizes external publication.
+# Dispatch with publish=false (the default) to build, test, and retain an artifact;
+# dispatch with publish=true only after explicit authorization for PyPI, docs, tag, and
+# GitHub Release side effects.
 #
-# Two kinds of step. Everything up to and including the artifact upload runs on both
-# branches. The IRREVERSIBLE steps -- PyPI upload, docs deploy, tag + GitHub Release --
-# run only on refs/heads/main; on build-test the run prints what it would have tagged
-# and released and stops. That is the whole point of build-test: a bumped VERSION
-# lands there through a rehearsal Prepare Release, the gate compares it against the
-# repository's REAL tags exactly as main would, and nothing outside this run changes.
+# Everything up to and including the artifact upload is reversible. The irreversible
+# steps run only for a manual main dispatch with publish=true. A main dispatch with the
+# default publish=false and every build-test dispatch are rehearsals.
 #
 # Release tags are `v<VERSION>` from 0.5.0 on; earlier releases were tagged bare
 # (`0.4.28`). scripts/release/release-tags.sh is the one place that knows both.
 
 on:
-  push:
-    branches:
-      - main
-      - build-test
   workflow_dispatch:
     inputs:
       publish:
-        description: Publish the GitHub Release (main only). Set to false to leave it as a draft.
+        description: Authorize PyPI, docs, tag, and GitHub Release publication from main.
         required: true
-        default: true
+        default: false
         type: boolean
 
 permissions:
@@ -53,6 +45,7 @@ jobs:
       version: ${{ steps.gate.outputs.version }}
       release_sha: ${{ github.sha }}
       is_main: ${{ steps.gate.outputs.is_main }}
+      external_publish: ${{ steps.gate.outputs.external_publish }}
 
     steps:
       - name: Check out release commit
@@ -79,7 +72,13 @@ jobs:
             echo "is_main=true" >> "$GITHUB_OUTPUT"
           else
             echo "is_main=false" >> "$GITHUB_OUTPUT"
-            echo "Rehearsal on $GITHUB_REF_NAME: the irreversible steps (PyPI, docs, tag) are skipped."
+          fi
+          if [ "$GITHUB_REF" = "refs/heads/main" ] && [ "${{ inputs.publish }}" = "true" ]; then
+            echo "external_publish=true" >> "$GITHUB_OUTPUT"
+            echo "Explicit external publication authorized for main."
+          else
+            echo "external_publish=false" >> "$GITHUB_OUTPUT"
+            echo "Rehearsal only: PyPI, docs, tag, and GitHub Release are disabled."
           fi
           latest_tag="$(source scripts/release/release-tags.sh && latest_release_tag)"
           current_tag="$(source scripts/release/release-tags.sh && release_tag_name "$current_version")"
@@ -179,14 +178,14 @@ jobs:
       # release without its wheel would break every skill install. If the upload
       # succeeds and a later step fails, dispatch this workflow on main again.
       - name: Publish cadgen to PyPI
-        if: ${{ steps.gate.outputs.should_publish == 'true' && steps.gate.outputs.is_main == 'true' }}
+        if: ${{ steps.gate.outputs.should_publish == 'true' && steps.gate.outputs.external_publish == 'true' }}
         uses: pypa/gh-action-pypi-publish@release/v1
         with:
           packages-dir: packages/cadgen/dist
           skip-existing: true
 
-      - name: Rehearsal summary (build-test)
-        if: ${{ steps.gate.outputs.should_publish == 'true' && steps.gate.outputs.is_main != 'true' }}
+      - name: Rehearsal summary
+        if: ${{ steps.gate.outputs.should_publish == 'true' && steps.gate.outputs.external_publish != 'true' }}
         run: |
           echo "Rehearsal complete on $GITHUB_REF_NAME at $GITHUB_SHA."
           echo "Would have uploaded: $(ls packages/cadgen/dist)"
@@ -200,7 +199,7 @@ jobs:
   deploy-docs:
     name: Deploy Docs
     needs: publish
-    if: ${{ needs.publish.outputs.should_publish == 'true' && needs.publish.outputs.is_main == 'true' }}
+    if: ${{ needs.publish.outputs.should_publish == 'true' && needs.publish.outputs.external_publish == 'true' }}
     uses: ./.github/workflows/deploy-docs.yml
     with:
       ref: ${{ needs.publish.outputs.release_sha }}
@@ -212,7 +211,7 @@ jobs:
     # PyPI release untagged (Deploy Docs can be re-run on its own).
     needs:
       - publish
-    if: ${{ needs.publish.outputs.should_publish == 'true' && needs.publish.outputs.is_main == 'true' }}
+    if: ${{ needs.publish.outputs.should_publish == 'true' && needs.publish.outputs.external_publish == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -236,15 +235,13 @@ jobs:
             echo "Using GITHUB_TOKEN for tag push."
           fi
 
-      # A push-triggered run has no `publish` input: it publishes. Only a manual
-      # dispatch can ask for a draft.
       - name: Create release tag and GitHub Release
         env:
           GH_TOKEN: ${{ github.token }}
           INPUT_PUBLISH: ${{ inputs.publish }}
         run: |
           args=(--target HEAD)
-          if [ "${INPUT_PUBLISH:-true}" = "true" ]; then
+          if [ "$INPUT_PUBLISH" = "true" ]; then
             args+=(--publish)
           fi
           scripts/release/publish-github-release.sh "${args[@]}"
