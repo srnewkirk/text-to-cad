@@ -198,6 +198,9 @@ def _run(request: dict) -> int:
 
 
 def serve() -> int:
+    from cadgen._internal.windows_worker import suppress_native_crash_dialogs
+
+    suppress_native_crash_dialogs()
     os.environ["CADGEN_DAEMON_CHILD"] = "1"
     # This process's stdout is not a console, it is the pool's FRAME CHANNEL, so
     # its encoding belongs to the protocol rather than to the platform. Windows

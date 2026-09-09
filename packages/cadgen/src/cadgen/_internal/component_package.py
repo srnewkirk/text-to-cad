@@ -304,6 +304,9 @@ def _build_component_surf_worker(
     are flattened so one failed component reports cleanly instead of poisoning
     the pool. A payload the worker cannot deserialize reports the
     ``PAYLOAD_UNREADABLE`` marker so the parent retries in-process."""
+    from cadgen._internal.windows_worker import suppress_native_crash_dialogs
+
+    suppress_native_crash_dialogs()
     payload, cid, out_surf, face_colors = args
     try:
         try:

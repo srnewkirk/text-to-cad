@@ -320,7 +320,9 @@ def _check_payload_worker(
     ``PAYLOAD_UNREADABLE`` marker so the parent checks that prototype in-process.
     """
     from cadgen._internal.component_package import PAYLOAD_UNREADABLE
+    from cadgen._internal.windows_worker import suppress_native_crash_dialogs
 
+    suppress_native_crash_dialogs()
     payload, index, options = args
     try:
         try:
