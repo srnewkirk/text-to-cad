@@ -130,6 +130,13 @@ Read `references/slicer-backends.md` when backend behavior, profile expectations
 
 Always validate generated G-code before handing it to printer-specific workflows. The validator checks for non-empty content, temperature commands, movement commands, extrusion moves, XYZ bounds, and unknown command warnings.
 
+For parts with critical overhangs, internal seats, channels, or captured
+cavities, inspect the slicer's actual toolpaths before handoff. Confirm support
+is present where required and that its placement leaves a plausible removal
+path. Static validation does not perform either check. Keep full assembly
+retention, wiring, thermal behavior, and physical serviceability as separate
+validation work.
+
 Read `references/gcode-validation.md` when interpreting validation output or deciding whether a warning is acceptable.
 
 ## Bambu Boundary

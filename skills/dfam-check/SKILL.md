@@ -83,6 +83,10 @@ Compare only trustworthy pairs of evidence.
   a material limit.
 - Support-volume ratios are coarse upper bounds; report them as cost
   signals, not hard failures, unless the user has set an explicit budget.
+- Overhang/support-area measurements do not show where a slicer actually placed
+  supports or whether those supports can be removed without damaging a seat,
+  channel, or captured cavity. Keep that conclusion as `❓ need more info`
+  until the sliced toolpaths are inspected.
 
 ## Redesign Handoff
 

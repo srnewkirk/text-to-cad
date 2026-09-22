@@ -148,6 +148,14 @@ use one of: #cast_rim:5spoke_1 (o1.7.2), #cast_rim:5spoke_2 (o1.14.2)
 4. Spec-driven checks: `measure` for every user-specified dimension, offset, or clearance; `align` for interfaces that should be flush or centered; `frame` for orientation and occurrence-placement expectations; `diff` for modifications that could affect unrelated geometry.
 5. Snapshot the primary STEP/STP per `snapshot-review.md`, then convert every visual concern into a deterministic geometry check before it becomes a validation claim.
 
+For every fit-critical validation, name the oracle: an actual measurement, a
+dimensioned drawing, a manufacturer datum, or another source independent of
+the placement constants being checked. A check derived from the same constants
+as the geometry proves internal consistency only. If the reference is nominal,
+simplified, or reconstructed from incomplete evidence, report the fit result as
+provisional. A measurement record must name the actual mating features or
+contact points, not only a part-level bounding box.
+
 ### `refs --facts` "ok" is not a geometry claim
 
 `refs --facts` reports counts, bounds, labels and references. Its `ok` field is
@@ -224,6 +232,17 @@ parts. To test a part's own bodies against each other, name that part alone:
 
 Fewer than two bodies, or all bodies in one part, is `INCONCLUSIVE` with
 `ok:false`, not a pass: nothing that could fail was tested.
+
+Every interference report must state:
+
+- the selected refs or parts and the tolerance used
+- whether the result is conclusive or inconclusive
+- cross-part `clashes` separately from `intraPartOverlaps`
+- any intentionally excluded parts or regions, with the reason
+
+Do not summarize a clean selected subset as "no interference" for the whole
+assembly. Intra-part overlap is reported evidence, even though it is not a
+cross-part failure.
 
 ## Reference discovery
 
@@ -316,6 +335,8 @@ Validation:
 - Major planes/refs: <summary>
 - Positioning: <frame/measure/align results if relevant>
 - Feature checks: <holes, cutouts, bosses, etc.>
+- Fit-critical evidence: <oracle/source and measured/documented/assumed/unknown state>
+- Interference: <selected refs, tolerance, conclusive status, cross-part clashes, intra-part overlaps, exclusions>
 - Visual review: `$cad-viewer` viewer link returned; CAD `cadgen step snapshot` PNG included or skipped with reason; follow-up geometry checks for any visual findings
 ```
 

@@ -50,11 +50,48 @@ class StoreUnwritableError(RuntimeError):
     """The store's folder cannot be written. One sentence, no frames."""
 
 
-def unwritable(exc: OSError, target: Path | str) -> StoreUnwritableError:
+class StoreWriteError(RuntimeError):
+    """A store write failed at a named operation boundary."""
+
+
+def write_failure(exc: OSError, operation: str, target: Path | str) -> StoreWriteError:
+    """Describe a store write failure without changing its retry policy.
+
+    The operation name distinguishes directory creation, temp-file creation,
+    payload writing/copying, and publication. errno and WinError are retained
+    because the same ``PermissionError`` text can mean different things on a
+    local disk, Windows, or an SMB-backed cache.
+    """
+    details = []
+    if exc.errno is not None:
+        details.append(f"errno={exc.errno}")
+    winerror = getattr(exc, "winerror", None)
+    if winerror is not None:
+        details.append(f"winerror={winerror}")
+    code = f"; {', '.join(details)}" if details else ""
+    reason = exc.strerror or str(exc) or type(exc).__name__
+    return StoreWriteError(
+        f"object store write failed during {operation}; cache root={store_root()}; "
+        f"target={Path(target)}; {reason}{code}"
+    )
+
+
+def unwritable(
+    exc: OSError, target: Path | str, *, operation: str | None = None
+) -> StoreUnwritableError:
     root = store_root()
+    stage = f" during {operation}" if operation else ""
+    details = []
+    if exc.errno is not None:
+        details.append(f"errno={exc.errno}")
+    winerror = getattr(exc, "winerror", None)
+    if winerror is not None:
+        details.append(f"winerror={winerror}")
+    codes = f"; {', '.join(details)}" if details else ""
     return StoreUnwritableError(
-        f"the store at {root} is not writable ({exc.strerror or type(exc).__name__} writing "
-        f"{Path(target).name}); point CADGEN_CACHE_DIR at a folder this user can write"
+        f"the store at {root} is not writable{stage} "
+        f"({exc.strerror or type(exc).__name__} writing {Path(target)}{codes}); "
+        "point CADGEN_CACHE_DIR at a folder this user can write"
     )
 
 

@@ -16,6 +16,17 @@ Decide how the part is constructed before writing geometry code:
 - **Order operations so fragile steps come last and failures localize.** Base solid → major additions → subtractive features → shell → through-wall holes → fillets and chamfers last. Fillets are the most failure-prone operation and every boolean invalidates selectors, so postpone them. Structure the source so each feature is a named step — a per-feature function or a distinct intermediate variable — so a failed operation points at exactly one feature and a parameter change touches one obvious place.
 - **Overshoot boolean tools.** Extend cutting tools past the faces they enter and exit; for through-cuts, go roughly 1 mm beyond both faces. Coincident or coplanar tool/target faces are a classic kernel failure. Cut repeated or patterned features in one combined operation.
 - **Sanity-check proportions before generating.** Compare the expected bounding box against the real-world object, wall thickness against overall size, and feature positions against edges and neighboring features. Order-of-magnitude and collision errors pass geometric validation but fail visual review.
+- **Choose repair or reconstruction explicitly for imported geometry.** Repair
+  the import when exact or unmeasured fidelity matters. Reconstruct it when the
+  desired result is materially simpler and its controlling dimensions and
+  interfaces are known. Before discarding imported geometry, capture the
+  envelope, mating interfaces, and any features that must survive, then compare
+  those facts against the reconstruction. A cleaner parametric model is not by
+  itself evidence of fidelity.
+- **Plan assembly and service operations before finalizing printable geometry.**
+  For multi-part physical work, record insertion direction, fastening and tool
+  access, soldering/wiring order, retention, and intended disassembly. A valid
+  static assembly can still be impossible to build or service.
 
 ## Topology stack
 

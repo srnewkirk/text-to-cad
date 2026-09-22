@@ -13,7 +13,7 @@ from pathlib import Path
 from typing import Iterator
 
 from cadgen._internal.atomic_replace import replace_atomic, temp_suffix
-from cadgen.store.paths import objects_dir
+from cadgen.store.paths import objects_dir, unwritable, write_failure
 
 
 def object_hash(data: bytes) -> str:
@@ -42,10 +42,36 @@ def has_object(digest: str) -> bool:
 def _mkdir(folder: Path) -> None:
     try:
         folder.mkdir(parents=True, exist_ok=True)
-    except PermissionError as exc:
-        from cadgen.store.paths import unwritable
+    except OSError as exc:
+        raise unwritable(
+            exc, folder, operation="create object shard directory"
+        ) from None
 
-        raise unwritable(exc, folder) from None
+
+def _write_temp(tmp: Path, data: bytes) -> None:
+    try:
+        handle = open(tmp, "wb")
+    except OSError as exc:
+        raise write_failure(exc, "create temporary object", tmp) from None
+    try:
+        with handle:
+            handle.write(data)
+    except OSError as exc:
+        raise write_failure(exc, "write temporary object", tmp) from None
+
+
+def _copy_temp(source: Path, tmp: Path) -> None:
+    try:
+        shutil.copyfile(source, tmp)
+    except OSError as exc:
+        raise write_failure(exc, f"copy object source {source}", tmp) from None
+
+
+def _publish_temp(tmp: Path, target: Path) -> None:
+    try:
+        replace_atomic(tmp, target)
+    except OSError as exc:
+        raise write_failure(exc, f"publish temporary object {tmp}", target) from None
 
 
 def put_object(data: bytes) -> str:
@@ -56,9 +82,8 @@ def put_object(data: bytes) -> str:
         return digest
     _mkdir(target.parent)
     tmp = target.with_name(f".{target.name}{temp_suffix()}")
-    with open(tmp, "wb") as handle:
-        handle.write(data)
-    replace_atomic(tmp, target)
+    _write_temp(tmp, data)
+    _publish_temp(tmp, target)
     return digest
 
 
@@ -75,8 +100,8 @@ def put_object_from_file(path: Path) -> str:
         return hexdigest
     _mkdir(target.parent)
     tmp = target.with_name(f".{target.name}{temp_suffix()}")
-    shutil.copyfile(path, tmp)
-    replace_atomic(tmp, target)
+    _copy_temp(path, tmp)
+    _publish_temp(tmp, target)
     return hexdigest
 
 

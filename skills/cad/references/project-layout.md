@@ -157,6 +157,17 @@ factory argument in `lib/`; another configuration is another model file.
 
 ## Folders mirror the product tree
 
+Use a product hierarchy when the repository describes one product and its
+owned subassemblies. Use a lifecycle hierarchy instead when the repository's
+primary job is to preserve alternatives, experiments, measurements, or
+successive revisions. Choose deliberately; do not force research history into
+a product tree or mix generated outputs with evidence simply because both are
+visible in CAD Viewer. For example, `src/product/`, `references/measured/`,
+and `studies/variant-a/` may coexist when those are real lifecycle boundaries.
+This is a taxonomy decision, not a universal folder prescription. Whichever
+hierarchy is chosen, keep buildable sources and their mirrored outputs
+unambiguous and document the roots in the catalog README.
+
 `src/` is the import root: every import is spelled from it (`from
 chassis.frame import frame`, `from lib import holes`, `from purchased.servo
 import servo`), whatever folder the importing script sits in — because the

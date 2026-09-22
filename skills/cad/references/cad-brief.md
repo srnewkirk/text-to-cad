@@ -14,6 +14,8 @@ The brief should answer:
 - Which faces, axes, origins, joints, or interfaces control positioning?
 - What output files are requested?
 - What must be validated before success is reported?
+- What is the evidence state of each fit-critical fact, and what independent
+  source will validate it?
 
 When inputs conflict, dimensioned sources win over image proportions. When two dimensioned sources conflict — prose says one value, a drawing callout says another — flag the conflict instead of silently choosing.
 
@@ -54,8 +56,23 @@ CAD brief:
 - Positioning/mating: <interfaces, datums, child placements, joints, alignment rules>
 - Paths: <generator .py, STEP target, secondary outputs if requested>
 - Validation targets: <bbox, solid count, labels, spec-driven measurements, refs>
+- Fit-critical evidence: <fact = measured/documented/assumed/unknown; source or missing source>
+- Assembly/service plan: <insertion, fastening/tool access, wiring/soldering, retention, disassembly; when relevant>
 - Assumptions: <only meaningful inferred choices>
 ```
+
+Use these evidence states consistently:
+
+- `measured`: taken from the actual mating features or contact points; name
+  those features and the measurement record.
+- `documented`: supported by a supplied drawing, datasheet, or authoritative
+  source; name it.
+- `assumed`: chosen to make progress and awaiting confirmation.
+- `unknown`: required for fit but not yet established.
+
+Do not promote an assumption to measured merely because both the reference and
+the new geometry use the same parameter. That demonstrates internal
+consistency, not physical fit.
 
 ## Example: simple part
 
@@ -128,3 +145,5 @@ A brief is ready for modeling when it contains enough information to define:
 - named parameters
 - feature plan and labels
 - expected bounding box or key measurements
+- evidence state and validation source for every fit-critical interface
+- assembly/service sequence when the result contains separately handled parts

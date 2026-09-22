@@ -46,3 +46,9 @@ By default, motion bounds are `X=0..bed_size_mm[0]`, `Y=0..bed_size_mm[1]`, and 
 - Start and end G-code.
 - Bed origin and coordinate system.
 - Any unknown command warnings.
+- Actual slicer toolpaths below critical overhangs and seats: support must be
+  present where required and have a plausible removal path.
+
+The validator does not verify support placement or removability. Likewise, it
+does not establish assembly retention, wiring clearance, thermal behavior, or
+serviceability; validate those independently when they matter.
