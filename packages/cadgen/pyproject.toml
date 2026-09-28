@@ -39,8 +39,8 @@ classifiers = [
 # OCC operations now, with shapely only the fallback for the degenerate unions
 # OCC refuses -- but a fallback that is not installed is not a fallback.
 dependencies = [
-  "build123d",
-  "cadquery-ocp",
+  "build123d==0.11.1",
+  "cadquery-ocp==7.9.3.1.1",
   "ezdxf",
   "shapely",
 ]
