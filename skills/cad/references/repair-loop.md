@@ -70,6 +70,13 @@ Fix:
 - ensure the `@step` model function returns the STEP-ready shape or compound
 - keep output paths in CLI commands, not inside the `@step` model function
 
+If the imported shape itself is the problem, make a repair-versus-reconstruction
+decision before accumulating patches. Reconstruct only when the desired shape
+is materially simpler and the controlling envelope and interfaces are known.
+Otherwise preserve the import and repair locally. Capture the original
+envelope, mating features, and required detail first, then validate the result
+against those facts; parametric cleanliness is not a fidelity check.
+
 ### Invalid or missing geometry
 
 Likely causes:
@@ -155,6 +162,10 @@ Likely causes: wrong part-local origin or datum, reversed `AssemblyHelper` fixed
 
 Fix:
 
+- if user-observed physical orientation or feature numbering contradicts the
+  model, invalidate and rederive the local-to-assembly mapping before changing
+  isolated offsets; record viewing direction, numbered feature map, local axes,
+  and applied transform
 - inspect `refs --positioning`, then `frame` and `align` on the relevant selectors
 - verify the source-level `AssemblyHelper` target order, joint labels, and `joint_location` definitions
 - apply the smallest source correction from the list in `positioning.md` (Source-level positioning corrections)

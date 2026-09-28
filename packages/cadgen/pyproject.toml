@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "cadgen"
-version = "0.5.2"
+version = "0.5.3"
 description = "STEP-first CAD artifact generation runtime: build123d STEP/GLB/topology generation, validation, and inspection for CAD agent skills."
 readme = "README.md"
 license = "MIT"
@@ -39,8 +39,8 @@ classifiers = [
 # OCC operations now, with shapely only the fallback for the degenerate unions
 # OCC refuses -- but a fallback that is not installed is not a fallback.
 dependencies = [
-  "build123d",
-  "cadquery-ocp",
+  "build123d==0.11.1",
+  "cadquery-ocp==7.9.3.1.1",
   "ezdxf",
   "shapely",
 ]

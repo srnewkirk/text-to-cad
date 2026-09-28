@@ -250,6 +250,15 @@ Examples:
 
 ## Source-level positioning corrections
 
+When physical evidence contradicts the modeled placement, treat the
+local-to-assembly mapping as invalid until it is rederived. Do not explain away
+the contradiction with the existing transform. Record the physical viewing
+direction, any numbered pin or feature map, the part-local axes, and the exact
+transform applied into the assembly. Then rebuild the mapping from those facts,
+regenerate, and repeat the frame and measurement checks. Mechanical CAD may
+record pin numbering as placement evidence; electrical connectivity remains
+outside this positioning workflow unless separately specified.
+
 When a positioning check fails, fix one of these in source:
 
 - child `Location` translation
