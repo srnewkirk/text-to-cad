@@ -396,8 +396,19 @@ Every build goes through one interface, `cadgen.daemon.executors.submit(model)
   binds a spare and a replacement starts in the background; no spare means a
   spawn. Spares: `CADGEN_DAEMON_SPARES` (default 2). Requests that name no
   model (`inspect`, `snapshot` on a document) borrow a spare without binding
-  it. Nothing waits on another build, nothing is capped, nothing counts
-  memory, no bound worker is idle-reaped; a worker is recycled after
+  it. Resident admission is capped at four workers by default
+  (`CADGEN_DAEMON_MAX_WORKERS`, read at daemon startup). Busy workers,
+  waiting parents, spares, starting workers and retiring workers share that
+  budget. Demand can wait for a pending spare import up to the spawn timeout;
+  it never queues behind active builds. A new model at capacity evicts the least recently used idle worker
+  before spawning; if all capacity is occupied, the request fails promptly
+  with exit 1 rather than queuing behind a parent that needs a child. Build
+  dependencies separately and retry the parent after a capacity error.
+  Workers whose termination fails stay quarantined and counted until an
+  observed process exit frees their capacity.
+  Windows admission also requires 2 GiB of RAM/commit headroom per pending
+  spawn plus 2 GiB reserved for the host. This is a conservative admission
+  estimate, not a per-process allocation limit. A worker is recycled after
   `CADGEN_DAEMON_RECYCLE` jobs (default 1000) as a leak hedge, and the daemon
   exits after `CADGEN_DAEMON_IDLE_TIMEOUT` seconds idle (default 3600).
   Inside a worker, `submit` is the same client call back to the daemon, so a
@@ -436,16 +447,18 @@ are themselves dispatched through the daemon when one is reachable, so they
 run on warm kernels; the subject-less commands (`store`, `doctor`, `daemon
 status`, the mesh and drawing snapshots) run in-process and never touch it.
 
-Three static mechanisms bound the pool — none adaptive, none heuristic, no
-memory is ever measured (`cadgen.daemon.broker`):
+The broker and idle timer provide three additional mechanisms, separate from
+resident admission; none imposes a memory limit on a running model:
 
 1. **Job slots — one running build per core.** A FIFO counting semaphore of
-   `N = os.cpu_count()` slots per executor (`CADGEN_JOBS` overrides; daemon-wide
+   `N` follows CPU count, capped on Windows by available RAM/commit and four
+   active jobs (`CADGEN_JOBS` overrides; daemon-wide
    for the daemon executor, per top-level build for the transient one, whose
    root process runs a private broker its workers inherit). A job takes a slot
    before its body runs and holds it through its emit; it **yields the slot
    while it waits for a child it forced** and reacquires — queuing if it must —
-   when the child is done. A waiting parent therefore holds nothing, which is
+   when the child is done. A waiting parent releases its slot but keeps its
+   worker and native allocations, which is
    why a 1-slot pool still builds a 3-level tree. Slots count kernel work only:
    the build pipeline takes one around a model body and its emit. **Doors take
    none and never run a body**: `inspect`, `snapshot` and the mesh doors
@@ -469,6 +482,15 @@ memory is ever measured (`cadgen.daemon.broker`):
    idle that long returns to the spare set (spares beyond K exit); its model's
    next build rebinds a spare — no import repaid — with a cold RAM op-memo tier.
    Purely RAM: idle workers hold no slot and never block a new model.
+
+The resident admission limit is separate from job slots: a slot is acquired
+after native imports, and releasing a slot does not free a worker's memory.
+Native BLAS/OpenMP/NumExpr thread counts are fixed at one in spawned workers.
+The resident limit is per daemon, not a machine-wide limit across separate
+installs, custom daemon addresses, or transient builds. `CADGEN_DAEMON=0`
+remains parallel and has no resident admission cap; it is not a memory remedy.
+Status JSON reports `workerLimit`, `workersStarting`, `workersRetiring`,
+`rejected` and `evictions` beside the worker list.
 
 ## 9a. Lazy children
 

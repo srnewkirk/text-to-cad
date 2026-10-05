@@ -32,7 +32,9 @@ def _windows_available_memory() -> int | None:
         status.dwLength = ctypes.sizeof(status)
         if not ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(status)):
             return None
-        return int(status.ullAvailPhys)
+        # Native workers consume commit as well as physical memory. Event 2004
+        # can occur with RAM still available when the commit limit is exhausted.
+        return min(int(status.ullAvailPhys), int(status.ullAvailPageFile))
     except (AttributeError, OSError, TypeError, ValueError):
         return None
 

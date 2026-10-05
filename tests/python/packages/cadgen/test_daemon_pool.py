@@ -1,6 +1,6 @@
 """The pool's dispatch rule: a worker per model, an extra when it is busy, spares in reserve.
 
-Nothing waits on another build and nothing is refused: the rule is bookkeeping, so it is
+Worker admission is bounded and never waits on a build: the rule is bookkeeping, so it is
 asserted against stub workers on identity and state, never on timing.
 """
 
@@ -11,12 +11,14 @@ import os
 import pathlib
 import sys
 import time
+import threading
 import unittest
 from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
 from cadgen.daemon import pool as pool_mod  # noqa: E402
+from cadgen._internal import runtime_limits  # noqa: E402
 
 
 class _StubWorker:
@@ -58,6 +60,12 @@ def _settle(pool: pool_mod.Pool, timeout: float = 5.0) -> None:
 
 class _PoolFixture(unittest.TestCase):
     def setUp(self) -> None:
+        memory = mock.patch.object(runtime_limits, "_windows_available_memory", return_value=None)
+        memory.start()
+        self.addCleanup(memory.stop)
+        limit = mock.patch.dict(os.environ, {"CADGEN_DAEMON_MAX_WORKERS": "128"})
+        limit.start()
+        self.addCleanup(limit.stop)
         patcher = mock.patch.object(pool_mod, "Worker", _StubWorker)
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -124,7 +132,7 @@ class Binding(_PoolFixture):
         bound = [w for w in self.pool.snapshot()["workers"] if w["model"]]
         self.assertEqual(bound, [], "a subject-less job bound a worker")
 
-    def test_nothing_is_capped(self):
+    def test_explicit_large_limit_allows_many_stub_workers(self):
         with self._spares(0):
             held = [self.pool.acquire(f"/m/{i}.py") for i in range(40)]
         self.assertEqual(len({w.pid for w in held}), 40)
@@ -232,6 +240,9 @@ class IdleUnbind(unittest.TestCase):
     """A bound worker idle for ten minutes returns to spare; nothing else is ever unbound."""
 
     def setUp(self) -> None:
+        memory = mock.patch.object(runtime_limits, "_windows_available_memory", return_value=None)
+        memory.start()
+        self.addCleanup(memory.stop)
         patcher = mock.patch.object(pool_mod, "Worker", _StubWorker)
         patcher.start()
         self.addCleanup(patcher.stop)
@@ -284,6 +295,275 @@ class IdleUnbind(unittest.TestCase):
             self.assertEqual(busy.model, "/m/a.py", "a busy worker was unbound")
             self.assertTrue(idle.model == "" or idle.killed, "the idle worker stayed bound")
         self.pool.release(busy)
+
+
+class Capacity(_PoolFixture):
+    def setUp(self):
+        super().setUp()
+        self.pool._limit = 4
+
+    def test_default_resident_limit_is_four(self):
+        with mock.patch.dict(os.environ, {}, clear=True):
+            self.assertEqual(pool_mod.worker_limit(), 4)
+
+    def test_concurrent_requests_cannot_overbook_resident_capacity(self):
+        def acquire(i):
+            try:
+                return self.pool.acquire(f"/m/{i}.py")
+            except pool_mod.WorkerCapacity:
+                return None
+
+        with self._spares(0), concurrent.futures.ThreadPoolExecutor(max_workers=12) as executor:
+            workers = [w for w in executor.map(acquire, range(40)) if w is not None]
+        self.assertEqual(len(workers), 4)
+        self.assertEqual(_StubWorker.spawned, 4)
+        self.assertEqual(self.pool.snapshot()["rejected"], 36)
+        for worker in workers:
+            self.pool.release(worker)
+
+    def test_fanout_and_waiting_parents_count_toward_resident_limit(self):
+        with self._spares(0):
+            held = [self.pool.acquire(f"/m/{i}.py") for i in range(4)]
+            with self.assertRaisesRegex(pool_mod.WorkerCapacity, "waiting parents"):
+                self.pool.acquire("/m/child.py")
+            self.assertEqual(_StubWorker.spawned, 4)
+            self.assertEqual(self.pool.snapshot()["rejected"], 1)
+            for worker in held:
+                self.pool.release(worker)
+
+    def test_many_sequential_models_evict_idle_workers(self):
+        with self._spares(0):
+            for i in range(40):
+                worker = self.pool.acquire(f"/m/{i}.py")
+                self.pool.release(worker)
+                self.assertLessEqual(len(self.pool.snapshot()["workers"]), 4)
+        self.assertGreater(self.pool.snapshot()["evictions"], 0)
+
+    def test_starting_workers_reserve_capacity_before_imports(self):
+        entered, resume = threading.Event(), threading.Event()
+        original = self.pool._spawn
+
+        def delayed_spawn():
+            entered.set()
+            self.assertTrue(resume.wait(3))
+            return original()
+
+        self.pool._limit = 1
+        with self._spares(0), mock.patch.object(self.pool, "_spawn", delayed_spawn):
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                first = executor.submit(self.pool.acquire, "/m/parent.py")
+                try:
+                    self.assertTrue(entered.wait(3))
+                    with self.assertRaises(pool_mod.WorkerCapacity):
+                        self.pool.acquire("/m/child.py")
+                    self.assertEqual(self.pool.snapshot()["workersStarting"], 1)
+                finally:
+                    resume.set()
+                worker = first.result(timeout=3)
+        self.pool.release(worker)
+
+    def test_spares_share_the_resident_budget(self):
+        self.pool._limit = 2
+        with self._spares(10):
+            self.pool.ensure_spares()
+            _settle(self.pool)
+            workers = [self.pool.acquire(f"/m/{i}.py") for i in range(2)]
+            _settle(self.pool)
+            with self.assertRaises(pool_mod.WorkerCapacity):
+                self.pool.acquire("/m/third.py")
+            self.assertEqual(_StubWorker.spawned, 2)
+            for worker in workers:
+                self.pool.release(worker)
+
+    def test_low_memory_rejects_before_spawn_and_skips_spare_warming(self):
+        with self._spares(2), mock.patch.object(runtime_limits, "_windows_available_memory", return_value=1):
+            self.pool.ensure_spares()
+            with self.assertRaisesRegex(pool_mod.WorkerCapacity, "headroom"):
+                self.pool.acquire("/m/a.py")
+        self.assertEqual(_StubWorker.spawned, 0)
+        self.assertEqual(self.pool.snapshot()["workersStarting"], 0)
+
+    def test_failed_spawn_returns_its_reservation(self):
+        with self._spares(0), mock.patch.object(self.pool, "_spawn", side_effect=OSError("spawn failed")):
+            with self.assertRaises(OSError):
+                self.pool.acquire("/m/a.py")
+        self.assertEqual(self.pool.snapshot()["workersStarting"], 0)
+
+    def test_retiring_worker_counts_until_process_exits(self):
+        entered, resume = threading.Event(), threading.Event()
+        self.pool._limit = 1
+        with self._spares(0):
+            worker = self.pool.acquire("/m/a.py")
+            original = worker.kill
+
+            def delayed_kill():
+                entered.set()
+                resume.wait(3)
+                original()
+
+            with mock.patch.object(worker, "kill", delayed_kill):
+                self.pool.release(worker, healthy=False)
+                try:
+                    self.assertTrue(entered.wait(3))
+                    with self.assertRaises(pool_mod.WorkerCapacity):
+                        self.pool.acquire("/m/b.py")
+                finally:
+                    resume.set()
+            with self.pool._cv:
+                self.pool._cv.wait_for(lambda: self.pool._retiring == 0, timeout=3)
+            self.assertEqual(self.pool.snapshot()["workersRetiring"], 0)
+
+    def test_failed_idle_eviction_keeps_survivor_counted_and_quarantined(self):
+        self.pool._limit = 1
+        with self._spares(0):
+            worker = self.pool.acquire("/m/a.py")
+            self.pool.release(worker)
+            with mock.patch.object(worker, "kill", return_value=None):
+                with self.assertRaises(pool_mod.WorkerCapacity):
+                    self.pool.acquire("/m/b.py")
+                with self.assertRaises(pool_mod.WorkerCapacity):
+                    self.pool.acquire("/m/a.py")
+            self.assertTrue(worker.alive())
+            self.assertEqual(_StubWorker.spawned, 1)
+            self.assertEqual(self.pool.snapshot()["workersRetiring"], 1)
+            worker.kill()  # later observed exit makes capacity available
+            replacement = self.pool.acquire("/m/b.py")
+            self.assertEqual(self.pool.snapshot()["workersRetiring"], 0)
+            self.pool.release(replacement)
+
+    def test_failed_async_retirement_keeps_capacity_until_observed_exit(self):
+        self.pool._limit = 1
+        for failure in (None, OSError("termination denied")):
+            with self.subTest(failure=failure), self._spares(0):
+                worker = self.pool.acquire("/m/a.py")
+                finished = threading.Event()
+                original = self.pool._stop_retired_worker
+
+                def retire(candidate):
+                    try:
+                        original(candidate)
+                    finally:
+                        finished.set()
+
+                with mock.patch.object(worker, "kill", side_effect=failure), mock.patch.object(self.pool, "_stop_retired_worker", retire):
+                    self.pool.release(worker, healthy=False)
+                    self.assertTrue(finished.wait(3))
+                with self.assertRaises(pool_mod.WorkerCapacity):
+                    self.pool.acquire("/m/b.py")
+                self.assertEqual(self.pool.snapshot()["workersRetiring"], 1)
+                worker.kill()
+                self.pool.reap_dead()
+                self.assertEqual(self.pool.snapshot()["workersRetiring"], 0)
+
+    def test_first_requests_wait_for_warming_spares_without_overbooking(self):
+        self.pool._limit = 2
+        entered, resume, waiting = threading.Event(), threading.Event(), threading.Event()
+        original = self.pool._spawn
+        original_wait = self.pool._cv.wait
+        waiters = [0]
+
+        def wait(timeout=None):
+            waiters[0] += 1
+            if waiters[0] == 2:
+                waiting.set()
+            return original_wait(timeout)
+
+        def warming():
+            entered.set()
+            self.assertTrue(resume.wait(3))
+            return original()
+
+        with self._spares(2), mock.patch.object(self.pool, "_spawn", warming), mock.patch.object(self.pool._cv, "wait", wait):
+            self.pool.ensure_spares()
+            self.assertTrue(entered.wait(3))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+                requests = [executor.submit(self.pool.acquire, f"/m/{i}.py") for i in range(2)]
+                try:
+                    self.assertTrue(waiting.wait(3))
+                finally:
+                    resume.set()
+                workers = [request.result(timeout=3) for request in requests]
+            _settle(self.pool)
+            self.assertEqual(_StubWorker.spawned, 2)
+            self.assertEqual(self.pool.snapshot()["rejected"], 0)
+            self.assertEqual(len({w.pid for w in workers}), 2)
+            for worker in workers:
+                self.pool.release(worker)
+
+    def test_waiting_for_a_stuck_spare_import_is_bounded(self):
+        self.pool._limit = 1
+        entered, resume = threading.Event(), threading.Event()
+        original = self.pool._spawn
+
+        def warming():
+            entered.set()
+            self.assertTrue(resume.wait(3))
+            return original()
+
+        with self._spares(1), mock.patch.object(self.pool, "_spawn", warming), mock.patch.object(pool_mod, "SPAWN_TIMEOUT_SECONDS", 0.01):
+            self.pool.ensure_spares()
+            self.assertTrue(entered.wait(3))
+            try:
+                with self.assertRaisesRegex(pool_mod.WorkerCapacity, "initialization timed out"):
+                    self.pool.acquire("/m/a.py")
+                self.assertEqual(self.pool.snapshot()["workersStarting"], 1)
+                self.assertEqual(_StubWorker.spawned, 0)
+            finally:
+                resume.set()
+            _settle(self.pool)
+
+    def test_demand_recovers_when_warming_import_fails(self):
+        self.pool._limit = 1
+        entered, resume = threading.Event(), threading.Event()
+        original = self.pool._spawn
+        calls = [0]
+
+        def warming():
+            calls[0] += 1
+            if calls[0] == 1:
+                entered.set()
+                self.assertTrue(resume.wait(3))
+                raise OSError("import failed")
+            return original()
+
+        with self._spares(1), mock.patch.object(self.pool, "_spawn", warming):
+            self.pool.ensure_spares()
+            self.assertTrue(entered.wait(3))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                request = executor.submit(self.pool.acquire, "/m/a.py")
+                resume.set()
+                worker = request.result(timeout=3)
+            self.assertEqual(self.pool.snapshot()["workersStarting"], 0)
+            self.pool.release(worker)
+
+    def test_shutdown_wakes_demand_waiting_for_spare_import(self):
+        self.pool._limit = 1
+        entered, resume, waiting = threading.Event(), threading.Event(), threading.Event()
+        original_spawn = self.pool._spawn
+        original_wait = self.pool._cv.wait
+
+        def warming():
+            entered.set()
+            self.assertTrue(resume.wait(3))
+            return original_spawn()
+
+        def wait(timeout=None):
+            waiting.set()
+            return original_wait(timeout)
+
+        with self._spares(1), mock.patch.object(self.pool, "_spawn", warming), mock.patch.object(self.pool._cv, "wait", wait):
+            self.pool.ensure_spares()
+            self.assertTrue(entered.wait(3))
+            with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor:
+                request = executor.submit(self.pool.acquire, "/m/a.py")
+                try:
+                    self.assertTrue(waiting.wait(3))
+                    self.pool.shutdown()
+                    with self.assertRaisesRegex(pool_mod.WorkerCapacity, "closed"):
+                        request.result(timeout=3)
+                finally:
+                    resume.set()
+            _settle(self.pool)
 
 
 class Status(_PoolFixture):

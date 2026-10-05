@@ -361,12 +361,25 @@ def find_reusable(directory: str, token: str) -> dict | None:
     ``git pull`` or rebuild, and a fresh launch starts fresh instead of
     reusing stale resident code.
     """
-    root_real = _realpath_or(directory)
-    for entry in registry.live_entries():  # probes pids, reaps stale files
-        if _realpath_or(entry.get("root")) == root_real and str(entry.get("token") or "") == str(
+    root_real = os.path.normcase(_realpath_or(directory))
+    candidates = []
+    for entry in registry.read_entries():
+        if os.path.normcase(_realpath_or(entry.get("root"))) == root_real and str(entry.get("token") or "") == str(
             token or ""
         ):
+            candidates.append(entry)
+    uncertain = []
+    for entry in candidates:
+        if registry.probe(entry):
             return entry
+        if registry.process_running(entry["pid"]) is not False:
+            uncertain.append(entry)
+    if uncertain:
+        entry = uncertain[0]
+        raise RuntimeError(
+            f"existing CAD Viewer pid {entry['pid']} on port {entry['port']} did not answer its identity probe; "
+            "refusing to start a duplicate. Retry when it responds, or use --new deliberately."
+        )
     return None
 
 
@@ -523,6 +536,37 @@ def main(argv: list[str] | None = None, *, prog: str = DEFAULT_PROG) -> int:
 
 
 def serve(argv: list[str], *, prog: str = DEFAULT_PROG) -> int:
+    args = parse_args(argv, prog=prog)
+    if args["fresh"] or args["port_explicit"] or args["ephemeral"] or args["no_registry"]:
+        return _serve(argv, prog=prog)
+    from cadgen.daemon.transport import SingletonLock, identity_digest
+
+    try:
+        directory = served_directory()
+        key = identity_digest(os.path.normcase(_realpath_or(directory)) + "\n" + identity_token())
+        lock = SingletonLock(Path(registry.registry_dir()) / f"launch-{key}.lock")
+        deadline = time.monotonic() + 5.0
+        while not lock.acquire():
+            try:
+                held = find_reusable(directory, identity_token())
+            except RuntimeError:
+                held = None  # a starting instance may not serve yet
+            if held:
+                return _serve(argv, prog=prog)
+            if time.monotonic() >= deadline:
+                _err("CAD Viewer for this directory is already starting or unavailable; refusing to start a duplicate. Retry shortly.\n")
+                return 1
+            time.sleep(0.1)
+        try:
+            return _serve(argv, prog=prog)
+        finally:
+            lock.release()
+    except OSError as error:
+        _err(f"CAD Viewer cannot coordinate reuse: {error}\n")
+        return 1
+
+
+def _serve(argv: list[str], *, prog: str = DEFAULT_PROG) -> int:
     # argparse answers --help on stdout with exit 0 and refuses an unknown
     # argument with exit 2, both before anything below runs. A launcher that
     # answered --help by starting a server read as broken.
@@ -542,7 +586,11 @@ def serve(argv: list[str], *, prog: str = DEFAULT_PROG) -> int:
     # --port opts out (you asked for a port, not a viewer), --new forces fresh.
     # Ephemeral dev backends never reuse and never register.
     if not args["fresh"] and not args["port_explicit"] and not args["ephemeral"]:
-        held = find_reusable(directory, identity_token())
+        try:
+            held = find_reusable(directory, identity_token())
+        except RuntimeError as error:
+            _err(str(error) + "\n")
+            return 1
         if held:
             url = f"http://{held.get('host') or DEFAULT_VIEWER_HOST}:{held['port']}/"
             _out(f"Reusing CAD Viewer at {url} (serving {held.get('root')}, pid {held['pid']})\n")
@@ -610,11 +658,6 @@ def serve(argv: list[str], *, prog: str = DEFAULT_PROG) -> int:
     # else; the narration goes to stderr. Without --json the narration is the
     # stdout contract (the URL line is what launch scripts read).
     say = _err if args["json"] else _out
-    say(f"{started} at {url} (serving {directory})\n")
-    say(f"CAD Viewer URL: {url}\n")
-    if args["json"]:
-        _out(f"{_compact_json({'url': url, 'port': port, 'action': 'started'})}\n")
-
     # Announce this instance so `main.py list` can find it — after the bind, so
     # we never advertise a port we failed to take. Dev skips it: a registered
     # dev backend would be REUSED by a later real launch on the same root,
@@ -623,17 +666,28 @@ def serve(argv: list[str], *, prog: str = DEFAULT_PROG) -> int:
         # The token is the one the app computed AT ITS OWN START (CadApp
         # holds it), never re-read from disk here: a re-read would let a
         # stale resident claim freshness after a pull.
-        registry.register(
+        registered = registry.register(
             host=host,
             port=port,
             root=directory,
             viewer_version=app.viewer_version,
             token=app.identity_token,
         )
+        if not registered:
+            server.server_close()
+            _err("CAD Viewer could not register for reuse; startup aborted to prevent accumulating undiscoverable servers. Check temp-directory write access.\n")
+            return 1
 
         import atexit  # noqa: PLC0415
 
         atexit.register(registry.unregister)
+
+    # Registration is part of readiness. A caller may relaunch immediately
+    # after reading this line and must already be able to discover us.
+    say(f"{started} at {url} (serving {directory})\n")
+    say(f"CAD Viewer URL: {url}\n")
+    if args["json"]:
+        _out(f"{_compact_json({'url': url, 'port': port, 'action': 'started'})}\n")
 
     def shutdown(_signum=None, _frame=None):
         if not args["no_registry"]:

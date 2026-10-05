@@ -227,6 +227,10 @@ def worker_env(base: dict[str, str] | None = None) -> dict[str, str]:
     source root first.
     """
     env = dict(os.environ if base is None else base)
+    # Each model already has process-level parallelism. Native BLAS thread
+    # pools multiply its memory and threads before it ever takes a job slot.
+    for name in ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS"):
+        env[name] = "1"
     import cadgen
 
     own = str(Path(cadgen.__file__).resolve().parents[1])

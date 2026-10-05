@@ -73,6 +73,15 @@ instance; `cadgen viewer stop --port <n>` ends one. Do not stop instances you
 did not start. Dev lives on Vite's port (5173, strict) and never enters the
 instance registry.
 
+Default launches coordinate through a lock for the served root and Viewer
+identity. The registry record is written before the ready URL is printed;
+registration failure aborts startup. A failed identity probe against a
+registered process that is alive (or cannot be checked) refuses a duplicate
+launch and preserves its discovery record. Loopback probes bypass HTTP
+proxies. Retry an unavailable Viewer; use `--new` only for an intentional
+additional instance. Editing model source or exported artifacts does not
+change the Viewer identity and does not require another server or browser tab.
+
 Reuse keys on realpath(served directory) × an identity token — the cadgen
 version salted with the newest mtime across the server's `.py` files and the
 built client — so an instance serving a different directory, the same directory

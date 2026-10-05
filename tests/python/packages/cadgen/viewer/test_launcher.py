@@ -25,6 +25,7 @@ import sys
 import tempfile
 import time
 import unittest
+from unittest import mock
 import urllib.error
 import urllib.request
 from pathlib import Path
@@ -222,6 +223,42 @@ class AnnounceIsConnectable(LauncherFixture):
 
 
 class RollAndReuse(LauncherFixture):
+    def test_model_edits_do_not_start_another_server(self):
+        dist, root = self.make_dist(), self.make_root()
+        first = self.launch(["--dist", dist, "--json"], cwd=root)
+        a = self.json_line(self.wait_for_url_line(first))
+        for i in range(3):
+            Path(root, "model.py").write_text(f"WIDTH = {i}\n", encoding="utf-8")
+            Path(root, "part.step").write_text(f"updated artifact {i}\n", encoding="utf-8")
+            code, stdout, _ = self.run_to_exit(["--json"], cwd=root)
+            self.assertEqual(code, 0)
+            self.assertEqual(self.json_line(stdout), {**a, "action": "reused"})
+
+    def test_simultaneous_launches_start_only_one_server(self):
+        dist, root = self.make_dist(), self.make_root()
+        children = [self.launch(["--dist", dist, "--json"], cwd=root) for _ in range(3)]
+        results = [self.json_line(self.wait_for_url_line(child)) for child in children]
+        self.assertEqual([r["action"] for r in results].count("started"), 1)
+        self.assertEqual(len({r["port"] for r in results}), 1)
+
+    def test_unresponsive_registered_server_refuses_a_duplicate(self):
+        from cadgen.viewer import registry
+
+        entry = {"pid": os.getpid(), "root": self.make_root(), "port": 3245, "token": "same"}
+        with mock.patch.object(registry, "read_entries", return_value=[entry]), mock.patch.object(registry, "probe", return_value=False), mock.patch.object(registry, "process_running", return_value=True):
+            with self.assertRaisesRegex(RuntimeError, "refusing to start a duplicate"):
+                main_module.find_reusable(entry["root"], "same")
+
+    def test_registration_failure_aborts_before_announcing_a_url(self):
+        from cadgen.viewer import registry
+
+        out, err = io.StringIO(), io.StringIO()
+        with mock.patch.object(registry, "register", return_value=""), mock.patch.object(main_module, "served_directory", return_value=self.make_root()), contextlib.redirect_stdout(out), contextlib.redirect_stderr(err):
+            code = main_module.serve(["--new", "--dist", self.make_dist(), "--json"])
+        self.assertEqual(code, 1)
+        self.assertNotIn('"action":"started"', out.getvalue())
+        self.assertIn("could not register", err.getvalue())
+
     def test_default_launch_rolls_and_a_second_root_rolls_past_the_first(self) -> None:
         dist = self.make_dist()
         first = self.launch(["--dist", dist, "--json"], cwd=self.make_root())

@@ -44,6 +44,12 @@ def _render(status: dict) -> str:
         f"  version  cadgen {status.get('version') or '?'}  token {status.get('token') or '?'}",
         f"  workers  {len(bound)} bound ({busy} busy), {status.get('spares', 0)} spare{starting}",
     ]
+    if "workerLimit" in status:
+        lines.append(
+            f"  capacity {len(workers)} resident, {status.get('workersStarting', 0)} starting, "
+            f"{status.get('workersRetiring', 0)} retiring / {status['workerLimit']} limit; "
+            f"{status.get('rejected', 0)} rejected, {status.get('evictions', 0)} idle evictions"
+        )
     jobs = status.get("jobsRunning") or {}
     if jobs:
         lines.append(

@@ -1,18 +1,19 @@
 """The warm worker pool: a worker per model, an extra when it is busy, spares in reserve.
 
-One rule decides everything here: **nothing waits on another build.** A request
+One rule decides everything here: **worker admission never waits on a build.** A request
 for a model whose worker is idle takes that worker. A request for a model whose
 worker is busy gets an *extra* — a spare bound to the same model for the length
 of one job — and runs now. A request for a model with no worker binds a spare. A
-request with no spare left spawns. The pool never says no, never caps, never
-counts memory, and never evicts a bound worker: unlimited memory is the
-operating assumption (STORE.md §9), and outcomes between concurrent builds of
-one model are decided by the publish rule, not by ordering the builds.
+request with no spare left evicts an idle worker or reserves a spawn, subject
+to a daemon-wide resident limit. Busy workers (including waiting parents),
+starting workers and retiring workers all count. At capacity admission fails
+promptly: queuing parents behind their children would deadlock. Outcomes between
+concurrent builds of one model are still decided by the publish rule.
 
 Spares: ``CADGEN_DAEMON_SPARES`` (default 2) workers that have finished importing
 build123d and are bound to nothing. Binding one starts a replacement in the
-background, so a new model's first build pays no import. An extra returns to the
-spare set when its job ends; a primary stays bound for the daemon's life.
+background only when capacity and memory headroom permit. An extra returns to
+the spare set when its job ends; idle primaries may be evicted under pressure.
 
 Recycle: a worker is dropped after ``CADGEN_DAEMON_RECYCLE`` jobs (default 1000)
 as a leak hedge; its model binds a fresh worker on the next request.
@@ -37,6 +38,11 @@ import time
 DEFAULT_SPARES = 2
 DEFAULT_RECYCLE_AFTER = 1000
 DEFAULT_IDLE_UNBIND_SECONDS = 600.0
+DEFAULT_MAX_WORKERS = 4
+# The incident's largest workers used 1.3–1.7 GiB of private memory. This is
+# admission headroom, not a promise to constrain a model's later allocations.
+SPAWN_MEMORY_BYTES = 2 * 1024**3
+SPAWN_MEMORY_RESERVE_BYTES = 2 * 1024**3
 SPAWN_TIMEOUT_SECONDS = 120.0
 _USE_SEQUENCE = itertools.count()
 
@@ -54,6 +60,15 @@ def _env_int(name: str) -> int | None:
 def spare_count() -> int:
     value = _env_int("CADGEN_DAEMON_SPARES")
     return max(0, value) if value is not None else DEFAULT_SPARES
+
+
+def worker_limit() -> int:
+    value = _env_int("CADGEN_DAEMON_MAX_WORKERS")
+    return max(1, value) if value is not None else DEFAULT_MAX_WORKERS
+
+
+class WorkerCapacity(RuntimeError):
+    """Admission refused before launching another native process."""
 
 
 def recycle_after() -> int:
@@ -240,6 +255,7 @@ class Worker:
                         proc.wait(timeout=2)
                     except subprocess.TimeoutExpired:
                         proc.kill()
+                        proc.wait(timeout=2)
         except OSError:
             pass
         finally:
@@ -257,10 +273,17 @@ class Pool:
         self._clock = clock
         self._workers: list[Worker] = []
         self._spares_pending = 0
-        self._stats = {"jobsServed": 0, "imports": 0, "concurrent": 0, "crashes": 0, "recycles": 0, "unbinds": 0}
+        self._starting = 0
+        self._retired_workers: list[Worker] = []
+        self._limit = worker_limit()
+        self._stats = {"jobsServed": 0, "imports": 0, "concurrent": 0, "crashes": 0, "recycles": 0, "unbinds": 0, "rejected": 0, "evictions": 0}
         self._closed = False
 
     # --- spares -------------------------------------------------------------------
+
+    @property
+    def _retiring(self) -> int:
+        return len(self._retired_workers)
 
     def _spawn(self) -> Worker:
         worker = Worker()
@@ -271,13 +294,37 @@ class Pool:
     def _spares_locked(self) -> list[Worker]:
         return [w for w in self._workers if not w.model and not w.busy]
 
+    def _reserve_locked(self) -> None:
+        if self._closed:
+            raise WorkerCapacity("worker pool is closed")
+        if len(self._workers) + self._starting + self._retiring >= self._limit:
+            raise WorkerCapacity(
+                f"resident worker limit {self._limit} reached (including waiting parents); "
+                "build dependencies separately, then retry the parent; "
+                "CADGEN_JOBS does not bound resident workers"
+            )
+        from cadgen._internal.runtime_limits import _windows_available_memory
+
+        available = _windows_available_memory()
+        required = SPAWN_MEMORY_RESERVE_BYTES + (self._starting + 1) * SPAWN_MEMORY_BYTES
+        if available is not None and available < required:
+            raise WorkerCapacity("insufficient Windows RAM/commit headroom to start a CAD worker; retry after memory is available")
+        self._starting += 1
+
     def ensure_spares(self) -> None:
         """Top the spare set up to ``spare_count()`` in the background."""
         with self._cv:
             if self._closed:
                 return
-            want = spare_count() - len(self._spares_locked()) - self._spares_pending
-            if want <= 0:
+            want = 0
+            desired = spare_count() - len(self._spares_locked()) - self._spares_pending
+            for _ in range(max(0, desired)):
+                try:
+                    self._reserve_locked()
+                except WorkerCapacity:
+                    break
+                want += 1
+            if not want:
                 return
             self._spares_pending += want
 
@@ -285,10 +332,11 @@ class Pool:
             for _ in range(count):
                 try:
                     worker = self._spawn()
-                except WorkerGone:
+                except (WorkerGone, OSError):
                     worker = None
                 with self._cv:
                     self._spares_pending -= 1
+                    self._starting -= 1
                     if worker is not None:
                         if self._closed:
                             worker.kill()
@@ -305,13 +353,33 @@ class Pool:
     # --- acquire / release -------------------------------------------------------
 
     def acquire(self, model: str = "") -> Worker:
-        """A worker for ``model`` — now. Never waits, never refuses.
+        """A worker for ``model`` or a capacity error; never wait on active builds.
+
+        Pending spare imports may be awaited up to the spawn timeout.
 
         ``model`` is the script path (the routing key); "" means a request with
         no model subject, which borrows a spare without binding it.
         """
         with self._cv:
+            if self._closed:
+                raise WorkerCapacity("worker pool is closed")
             self._reap_dead_locked()
+            # A pending spare holds capacity but is not running a model. Wait
+            # for its bounded import rather than reject demand or queue behind
+            # active parents. Recheck under the lock because other callers can
+            # claim the spare first, and failed imports release reservations.
+            deadline = time.monotonic() + SPAWN_TIMEOUT_SECONDS
+            while self._spares_pending and self._take_spare_locked() is None:
+                if any(w.model == model and model and not w.busy and not w.extra for w in self._workers):
+                    break
+                remaining = deadline - time.monotonic()
+                if remaining <= 0:
+                    self._stats["rejected"] += 1
+                    raise WorkerCapacity("spare worker initialization timed out; retry after imports finish")
+                self._cv.wait(timeout=remaining)
+                if self._closed:
+                    raise WorkerCapacity("worker pool closed while waiting for a spare")
+                self._reap_dead_locked()
             if model:
                 bound = [w for w in self._workers if w.model == model and not w.extra]
                 idle = [w for w in bound if not w.busy]
@@ -321,15 +389,47 @@ class Pool:
                     return self._used_locked(worker)
                 spare = self._take_spare_locked()
                 if spare is not None:
-                    self._workers.remove(spare)
+                    spare.busy = True
             else:
                 spare = self._take_spare_locked()
                 if spare is not None:
-                    self._workers.remove(spare)
+                    spare.busy = True
                 bound = []
+            if spare is None:
+                idle = [w for w in self._workers if not w.busy]
+                if idle and len(self._workers) + self._starting + self._retiring >= self._limit:
+                    # Do not rebind a model worker: its RAM memo belongs to its
+                    # previous model. Reap before reserving its replacement.
+                    victim = min(idle, key=lambda w: w.last_used)
+                    self._retire_locked(victim)
+                    self._stop_retired_worker(victim)
+                    self._stats["evictions"] += 1
+                try:
+                    self._reserve_locked()
+                except WorkerCapacity:
+                    self._stats["rejected"] += 1
+                    raise
         if spare is None:
-            spare = self._spawn()
+            try:
+                spare = self._spawn()
+            except BaseException:
+                with self._cv:
+                    self._starting -= 1
+                    self._cv.notify_all()
+                raise
+            with self._cv:
+                self._starting -= 1
+                if self._closed:
+                    spare.kill()
+                    raise WorkerCapacity("worker pool closed while starting a worker")
+                # Publish before releasing the lock: another admission must
+                # count this worker even before it is assigned below.
+                spare.busy = True
+                self._workers.append(spare)
         with self._cv:
+            if self._closed:
+                spare.kill()
+                raise WorkerCapacity("worker pool closed during admission")
             spare.busy = True
             if model:
                 spare.model = model
@@ -339,7 +439,8 @@ class Pool:
                     self._stats["concurrent"] += 1
             else:
                 spare.extra = True  # borrowed; returns to the spare set on release
-            self._workers.append(spare)
+            if spare not in self._workers:
+                self._workers.append(spare)
             self._used_locked(spare)
         self.ensure_spares()
         return spare
@@ -394,11 +495,34 @@ class Pool:
         self.ensure_spares()
 
     def _drop_locked(self, worker: Worker) -> None:
+        if worker in self._retired_workers:
+            return
+        self._retire_locked(worker)
+        threading.Thread(target=self._stop_retired_worker, args=(worker,), daemon=True).start()
+
+    def _retire_locked(self, worker: Worker) -> None:
         if worker in self._workers:
             self._workers.remove(worker)
-        threading.Thread(target=worker.kill, daemon=True).start()
+        self._retired_workers.append(worker)
+
+    def _stop_retired_worker(self, worker: Worker) -> None:
+        try:
+            with contextlib.suppress(OSError, subprocess.TimeoutExpired):
+                worker.kill()
+        finally:
+            with self._cv:
+                self._reap_retired_locked()
+                self._cv.notify_all()
+
+    def _reap_retired_locked(self) -> None:
+        for worker in list(self._retired_workers):
+            # Termination returning (or throwing) is not proof of exit.
+            # Keep survivors quarantined and counted; they cannot be reused.
+            if not worker.alive():
+                self._retired_workers.remove(worker)
 
     def _reap_dead_locked(self) -> None:
+        self._reap_retired_locked()
         for worker in list(self._workers):
             if not worker.alive() and not worker.busy:
                 self._drop_locked(worker)
@@ -410,7 +534,9 @@ class Pool:
     def shutdown(self) -> None:
         with self._cv:
             self._closed = True
-            workers, self._workers = list(self._workers), []
+            workers = list(self._workers) + list(self._retired_workers)
+            self._workers = []
+            self._cv.notify_all()
         for worker in workers:
             worker.kill()
 
@@ -431,5 +557,8 @@ class Pool:
                 "spares": len(self._spares_locked()),
                 "sparesPending": self._spares_pending,
                 "sparesWanted": spare_count(),
+                "workerLimit": self._limit,
+                "workersStarting": self._starting,
+                "workersRetiring": self._retiring,
                 **self._stats,
             }

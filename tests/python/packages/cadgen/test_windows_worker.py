@@ -12,6 +12,13 @@ from cadgen._internal import windows_worker  # noqa: E402
 
 
 class WindowsWorkerPolicyTests(unittest.TestCase):
+    def test_worker_environment_bounds_native_threads_even_with_large_inherited_values(self):
+        from cadgen.daemon.executors import worker_env
+
+        names = ("OPENBLAS_NUM_THREADS", "OMP_NUM_THREADS", "MKL_NUM_THREADS", "NUMEXPR_NUM_THREADS")
+        env = worker_env({name: "64" for name in names})
+        self.assertTrue(all(env[name] == "1" for name in names))
+
     def test_non_windows_process_is_unchanged(self):
         with mock.patch.object(windows_worker.os, "name", "posix"):
             self.assertFalse(windows_worker.suppress_native_crash_dialogs())
