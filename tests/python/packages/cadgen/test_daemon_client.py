@@ -170,6 +170,22 @@ class ServerRelaysTheDeath(unittest.TestCase):
         self.assertEqual(conn.frames[-1], {"exit": 1})
         pool.release.assert_called_once_with(worker, healthy=False)
         self.assertTrue(any("died mid-job" in line for line in logged), logged)
+
+    def test_capacity_rejection_is_terminal_and_not_a_cold_fallback(self):
+        pool = mock.Mock()
+        pool.acquire.side_effect = pool_mod.WorkerCapacity("resident limit reached")
+        conn = self._Conn()
+        request = {"tool": "run", "argv": ["child.py"], "cwd": "/w", "closure": "hash", "coalesce": True}
+        broker = mock.Mock()
+        broker.claim.return_value = None
+        with mock.patch.object(server, "_POOL", pool), mock.patch.object(server, "_BROKER", broker), mock.patch.object(server, "_log"):
+            server._handle_request(conn, request)
+        broker.finish.assert_called_once_with(server._script_path(request["argv"], request["cwd"]), "hash", 1)
+        self.assertEqual(conn.frames[-1], {"exit": 1})
+        channel = _ScriptedChannel(conn.frames)
+        with redirect_stderr(io.StringIO()), redirect_stdout(io.StringIO()):
+            self.assertEqual(client._run_request(channel, request), 1)
+        pool.release.assert_not_called()
 class DescribeExit(unittest.TestCase):
     def test_signal_code_and_open_pipe_are_told_apart(self):
         import signal

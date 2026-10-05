@@ -98,6 +98,13 @@ only launching cares about the cwd.)
 To review a directory outside the current root, just `cd` there and launch
 again — reuse-or-start makes the second launch cheap and correct.
 
+Keep the same launch directory and browser tab across model edits. Updated
+artifacts do not require a new server. A normal launch coordinates concurrent
+starts, registers before returning its URL, and refuses to duplicate a
+registered server that does not answer its identity probe. Retry after it
+responds; do not automatically add `--new` or an explicit port to bypass this
+error. Registration failure is a startup error, not a successful hidden server.
+
 ## Generation is the CAD skill's job; documents compile in the Viewer
 
 The Viewer is a static visualization tool: it renders artifacts that already

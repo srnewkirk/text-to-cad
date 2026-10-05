@@ -16,6 +16,7 @@ import os
 import tempfile
 import threading
 import unittest
+from unittest import mock
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -129,6 +130,13 @@ class RegisterAndUnregister(RegistrySandbox):
 
 
 class Liveness(RegistrySandbox):
+    def test_a_failed_probe_preserves_a_live_or_unknown_process_record(self):
+        target = registry.register(host="127.0.0.1", port=1, root="models")
+        for state in (True, None):
+            with mock.patch.object(registry, "probe", return_value=False), mock.patch.object(registry, "process_running", return_value=state):
+                self.assertEqual(registry.live_entries(), [])
+            self.assertTrue(os.path.isfile(target))
+
     def test_live_entries_keeps_probed_entries_and_reaps_the_rest(self) -> None:
         answering = _PidServer(os.getpid())
         self.addCleanup(answering.close)

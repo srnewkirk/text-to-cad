@@ -274,7 +274,7 @@ def _handle_request(conn: transport.Channel, request: dict) -> None:
             return
     try:
         worker = _POOL.acquire(model)
-    except pool_mod.WorkerGone as exc:
+    except (pool_mod.WorkerGone, pool_mod.WorkerCapacity, OSError) as exc:
         # A spawn that never announced itself. There is no worker to blame and nothing
         # to retry warm; the client sees the failure and can run cold.
         _log(f"{tool}: could not start a worker: {exc}")

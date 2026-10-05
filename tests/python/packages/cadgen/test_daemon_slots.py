@@ -124,7 +124,9 @@ if __name__ == "__main__":
 
 PARENT_B = PARENT_A.replace("parent_a", "parent_b").replace("bd.Box(10, 10, 1)", "bd.Box(12, 12, 1)")
 
-LEAVES = 6  # more than the limit so the broker must queue; small so the build stays cheap
+# Three children exceed the two active slots, while root + children fit the
+# four-resident-worker budget. This fixture tests slot queuing, not admission.
+LEAVES = 3
 
 
 def _write_fixture(src: Path) -> None:
@@ -169,6 +171,7 @@ class _Executor(unittest.TestCase):
             "CADGEN_CACHE_DIR": str(cls.work / "store"),
             "CADGEN_DAEMON_STATE_DIR": str(cls.work / "state"),
             "CADGEN_JOBS": str(cls.LIMIT),
+            "CADGEN_DAEMON_MAX_WORKERS": "4",
             "PYTHONPATH": os.pathsep.join(
                 [str(REPO_ROOT / "packages" / "cadgen" / "src")]
                 + [os.path.abspath(p) for p in os.environ.get("PYTHONPATH", "").split(os.pathsep) if p]

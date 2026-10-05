@@ -8,8 +8,8 @@ after a hard kill the port is free for anything else to take, and acting on a
 stale file that names a stranger's port would be the worst thing ``stop`` could
 do.
 
-Failing closed here always means "no registry entry", never "no viewer": a
-shared ``/tmp`` we do not own must not stop a viewer from starting.
+Registration failure is returned to the launcher, which refuses an ordinary
+unregistered server. Explicit ``--no-registry`` launches opt out of discovery.
 """
 
 from __future__ import annotations
@@ -164,7 +164,9 @@ def probe(entry, timeout_seconds: float = PROBE_TIMEOUT_SECONDS) -> bool:
     host = str(entry.get("host") or "127.0.0.1")
     url = f"http://{host}:{entry.get('port')}/__cad/server"
     try:
-        with urllib.request.urlopen(url, timeout=timeout_seconds) as response:  # noqa: S310 - loopback only
+        # Loopback identity checks must not be sent to an environment HTTP proxy.
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        with opener.open(url, timeout=timeout_seconds) as response:  # noqa: S310 - loopback only
             if not (200 <= response.status < 300):
                 return False
             payload = json.loads(response.read().decode("utf-8"))
@@ -173,8 +175,42 @@ def probe(entry, timeout_seconds: float = PROBE_TIMEOUT_SECONDS) -> bool:
     return isinstance(payload, dict) and payload.get("pid") == entry.get("pid")
 
 
+def process_running(pid: int) -> bool | None:
+    """Process existence only; NEVER sufficient evidence for URL reuse or stop.
+
+    Unknown (including denied access) is distinct from confirmed dead. A slow
+    HTTP probe must not erase a live server's only discovery record.
+    """
+    try:
+        if os.name == "nt":
+            import ctypes
+            from ctypes import wintypes
+
+            kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+            kernel.OpenProcess.argtypes = (wintypes.DWORD, wintypes.BOOL, wintypes.DWORD)
+            kernel.OpenProcess.restype = wintypes.HANDLE
+            kernel.GetExitCodeProcess.argtypes = (wintypes.HANDLE, ctypes.POINTER(wintypes.DWORD))
+            kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+            handle = kernel.OpenProcess(0x1000, False, pid)
+            if not handle:
+                return False if ctypes.get_last_error() == 87 else None
+            try:
+                code = wintypes.DWORD()
+                if not kernel.GetExitCodeProcess(handle, ctypes.byref(code)):
+                    return None
+                return code.value == 259  # STILL_ACTIVE
+            finally:
+                kernel.CloseHandle(handle)
+        os.kill(pid, 0)
+        return True
+    except ProcessLookupError:
+        return False
+    except (OSError, AttributeError, ValueError, OverflowError):
+        return None
+
+
 def live_entries(*, reap: bool = True) -> list[dict]:
-    """Every entry whose identity probe succeeds, oldest first. Stale files are deleted.
+    """Every identity-probed entry, oldest first. Only confirmed dead PIDs are reaped.
 
     Probing runs in parallel. Node probed serially, which cost N x 500ms on
     every ``list`` AND on every default launch's reuse lookup; the output is
@@ -190,7 +226,7 @@ def live_entries(*, reap: bool = True) -> list[dict]:
     for entry, is_alive in zip(entries, alive):
         if is_alive:
             live.append(entry)
-        elif reap:
+        elif reap and process_running(entry["pid"]) is False:
             unregister(entry.get("pid"))
     live.sort(key=lambda entry: entry.get("startedAt") or 0)
     return live

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import unittest
+from unittest import mock
 
 from tests.python.support.paths import add_repo_path
 
@@ -10,6 +11,18 @@ from cadgen._internal import runtime_limits  # noqa: E402
 
 
 class KernelWorkerCeilingTests(unittest.TestCase):
+    def test_windows_headroom_uses_the_smaller_ram_and_commit_value(self):
+        import ctypes
+
+        def fill(pointer):
+            pointer._obj.ullAvailPhys = 8 * 1024**3
+            pointer._obj.ullAvailPageFile = 512 * 1024**2
+            return 1
+
+        kernel = mock.Mock(GlobalMemoryStatusEx=fill)
+        with mock.patch.object(runtime_limits.os, "name", "nt"), mock.patch.object(ctypes, "windll", mock.Mock(kernel32=kernel), create=True):
+            self.assertEqual(runtime_limits._windows_available_memory(), 512 * 1024**2)
+
     def test_posix_tracks_the_cpu_count(self):
         self.assertEqual(
             runtime_limits.kernel_worker_ceiling(cpu_count=12, platform="posix"),

@@ -505,22 +505,33 @@ CADGEN_DAEMON=0 python part.py      # transient workers, spawned for this run
 - **One worker per model.** A request lands on the worker bound to its model
   script; a busy worker means a second one (an *extra*) runs the job now; a
   model with no worker takes a warm spare (`CADGEN_DAEMON_SPARES`, default 2,
-  refilled in the background). Nothing waits on another build and no worker
-  count is capped.
+  refilled in the background within the resident budget). Idle model workers
+  may be evicted to admit a new model.
 - **Children build in parallel.** Inside a body, each child call submits that
   child to the pool and returns at once; siblings build on their own workers
   while the body continues, and the parent waits only when it first reads the
   geometry.
-- **One running build per core.** `N = os.cpu_count()` jobs run at once
+- **Job slots bound active kernel work.** The default follows CPU count,
+  capped on Windows at four and reduced when RAM/commit is tight
   (`CADGEN_JOBS` overrides); the rest queue in order. A parent waiting on its
   children holds no slot, so a deep tree builds on a single slot. Hitting the
-  limit during a fan-out is normal and costs no wall time.
+  job-slot limit during a fan-out queues active work.
 - **Idle workers unbind after 10 minutes** (`CADGEN_DAEMON_IDLE_UNBIND`,
   seconds) and return to the spare set; the daemon exits after an hour with no
   request (`CADGEN_DAEMON_IDLE_TIMEOUT`). Both are about RAM; neither ever
   blocks a build.
-- **No memory ceiling and no worker cap.** Unlimited memory is the operating
-  assumption. A worker the OS kills mid-job is reported as a dead worker with
+- **Resident workers are capped separately.** `CADGEN_DAEMON_MAX_WORKERS`
+  defaults to four, read when the daemon starts. Spares, pending imports,
+  retiring workers and waiting parents count too. If all capacity is busy,
+  admission fails immediately rather than deadlocking a parent behind its
+  child. Requests may wait for pending spare imports up to the spawn timeout;
+  they never queue behind active builds. Failed termination leaves a worker
+  quarantined and counted until its exit is observed.
+  Build dependencies separately, then retry the parent. Windows checks
+  RAM and commit headroom before spawning (2 GiB per pending spawn plus a
+  2 GiB host reserve). This cannot constrain a model's later allocations.
+  Spawned workers use one BLAS/OpenMP/NumExpr thread each. A worker the OS
+  kills mid-job is reported as a dead worker with
   its exit status, the job it held, and the exact `CADGEN_DAEMON=0 ...` rerun;
   nothing is retried silently.
 - **`CADGEN_DAEMON=0` is still parallel.** Transient workers are spawned for
@@ -528,6 +539,9 @@ CADGEN_DAEMON=0 python part.py      # transient workers, spawned for this run
   environment — so a test's `CADGEN_CACHE_DIR` isolates its store — and exit
   with the run. There is no daemon job ledger in this mode, so the CAD Viewer
   does not see such builds in progress.
+  Transient mode has no resident worker cap; do not use it to address memory
+  exhaustion. Limits apply per daemon, not across different installations or
+  custom daemon addresses.
 - **`cadgen daemon status`** reports each worker's model, whether it is busy,
   its job count and whether it is an extra; the spare count; and `jobs running
   n/N, queued m` — the first place to look when a build seems slow.
