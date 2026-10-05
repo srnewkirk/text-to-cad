@@ -30,10 +30,12 @@ import hmac
 import multiprocessing.connection as mpc
 import os
 import secrets
+import socket
 import stat
 import sys
 import tempfile
 import time
+import threading
 from pathlib import Path
 
 # Bump when the wire format changes. It is part of the address, so mismatched peers never
@@ -295,18 +297,75 @@ def connect(address: str, authkey: bytes) -> Channel:
         raise OSError(str(exc)) from exc
 
 
-class Server:
-    """A listener plus the accept loop's shutdown story.
+def _wake_pipe_listener(address: str) -> None:
+    """Connect and disconnect without waiting for a free pipe or authentication."""
+    import ctypes
+    from ctypes import wintypes
 
-    ``Listener.accept()`` cannot take a timeout, which the idle shutdown needs. Closing the
-    listener from another thread makes the pending accept raise, and that is the signal --
-    portable across both families, and it does not reach into Listener's private socket.
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    create = kernel.CreateFileW
+    create.argtypes = (wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                       wintypes.LPVOID, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE)
+    create.restype = wintypes.HANDLE
+    close = kernel.CloseHandle
+    close.argtypes = (wintypes.HANDLE,)
+    close.restype = wintypes.BOOL
+    GENERIC_READ = 0x80000000
+    GENERIC_WRITE = 0x40000000
+    OPEN_EXISTING = 3
+    FILE_FLAG_OVERLAPPED = 0x40000000
+    ERROR_PIPE_BUSY = 231
+    handles = []
+    try:
+        # CPython PipeListener owns one pending instance and one queued instance.
+        # Keep both clients open until connected so a queued instance cannot consume
+        # the only wakeup. CreateFile returns PIPE_BUSY immediately; do not use
+        # WaitNamedPipe or multiprocessing.Client's retry/authentication loops.
+        for _ in range(2):
+            handle = create(address, GENERIC_READ | GENERIC_WRITE, 0, None,
+                            OPEN_EXISTING, FILE_FLAG_OVERLAPPED, None)
+            if handle == ctypes.c_void_p(-1).value:
+                error = ctypes.get_last_error()
+                if error == ERROR_PIPE_BUSY:
+                    break
+                # The Server guard retains the listener through this wakeup, so
+                # even a missing pipe is unexpected rather than a close race.
+                raise ctypes.WinError(error)
+            handles.append(handle)
+    finally:
+        for handle in handles:
+            close(handle)
+
+
+def _wake_listener(address: str, family: str) -> None:
+    if family == "AF_PIPE":
+        _wake_pipe_listener(address)
+        return
+    with socket.socket(socket.AF_UNIX, socket.SOCK_STREAM) as wakeup:
+        wakeup.settimeout(0.1)
+        with contextlib.suppress(OSError):
+            wakeup.connect(address)
+
+
+class Server:
+    """A listener with a bounded, unauthenticated shutdown wakeup.
+
+    The accept owner closes the listener after its native wait returns: closing it
+    concurrently does not cancel Windows' pending pipe and can race pipe creation.
+    The wakeup immediately disconnects and can never become an application channel.
+    An existing peer stalled inside the stdlib authentication handshake still has to
+    finish or disconnect; close does not wait for that peer or add a helper thread.
     """
 
     def __init__(self, address: str, authkey: bytes, backlog: int = 8) -> None:
-        self._listener = mpc.Listener(address, family=_family(), authkey=authkey, backlog=backlog)
+        self._family = _family()
+        self._listener = mpc.Listener(address, family=self._family, authkey=authkey, backlog=backlog)
         self.address = address
+        self._guard = threading.Lock()
+        self._accept_guard = threading.Lock()
+        self._accepting = False
         self._closed = False
+        self._wake_failed = False
 
     def accept(self) -> Channel | None:
         """The next client, or None once the listener has been closed.
@@ -315,22 +374,52 @@ class Server:
         failure, not the listener's: the daemon keeps accepting. Before this, one bad
         handshake read as "listener closed" and took the whole daemon down.
         """
-        while True:
-            try:
-                return Channel(self._listener.accept())
-            except (OSError, EOFError, mpc.AuthenticationError):
-                if self._closed:
-                    return None
+        with self._accept_guard:
+            while True:
+                connection = None
+                try:
+                    with self._guard:
+                        if self._closed:
+                            return None
+                        self._accepting = True
+                    connection = self._listener.accept()
+                except (OSError, EOFError, mpc.AuthenticationError):
+                    pass
+                finally:
+                    with self._guard:
+                        was_accepting = self._accepting
+                        self._accepting = False
+                        if was_accepting and self._closed:
+                            with contextlib.suppress(OSError):
+                                self._listener.close()
+                            self._wake_failed = False
+                with self._guard:
+                    if self._closed:
+                        if connection is not None:
+                            with contextlib.suppress(OSError):
+                                connection.close()
+                        return None
+                    if connection is not None:
+                        return Channel(connection)
                 time.sleep(0.01)  # a rejected peer; never a busy loop on a broken listener
 
     def close(self) -> None:
-        if self._closed:
-            return
-        self._closed = True
-        try:
-            self._listener.close()
-        except OSError:
-            pass
+        with self._guard:
+            if self._closed and not self._wake_failed:
+                return
+            self._closed = True
+            if self._accepting:
+                # Hold the guard through the bounded wakeup so accept cannot close
+                # and release this address for another listener before we connect.
+                # An unexpected failure remains loud and admission stays closed;
+                # a later close may retry without abandoning the listener owner.
+                self._wake_failed = True
+                _wake_listener(self.address, self._family)
+                self._wake_failed = False
+            else:
+                with contextlib.suppress(OSError):
+                    self._listener.close()
+                self._wake_failed = False
 
     @property
     def closed(self) -> bool:

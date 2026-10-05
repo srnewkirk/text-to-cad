@@ -32,6 +32,7 @@ import subprocess
 import sys
 import tempfile
 import unittest
+from unittest import mock
 
 sys.path.insert(0, str(pathlib.Path(__file__).resolve().parents[2]))
 
@@ -144,13 +145,19 @@ def _digest(path: pathlib.Path) -> str:
     return hashlib.sha256(raw).hexdigest()
 
 
-def _manifest(root: pathlib.Path) -> dict[str, str]:
+def _manifest(root: pathlib.Path, *, daemon_env: dict) -> dict[str, str]:
     """Digest of every built file for the models in ``root``: the store
     packages their artifacts resolve to (content-keyed), plus the model-folder
     outputs themselves (.step documents and source sidecars).
 
     Lock and progress files are transient scaffolding, not output.
     """
+    # Lazy view extraction must use this test's executor, never an ambient daemon.
+    with mock.patch.dict(os.environ, daemon_env):
+        return _manifest_in_current_env(root)
+
+
+def _manifest_in_current_env(root: pathlib.Path) -> dict[str, str]:
     from cadgen.catalog import result_view_dir
 
     out: dict[str, str] = {}
@@ -202,8 +209,8 @@ class _Daemon:
 
     def __exit__(self, *exc):
         subprocess.run(
-            [sys.executable, "-m", "cadgen.daemon", "--stop"],
-            env=_env(**self.env()), capture_output=True, timeout=60,
+            [sys.executable, str(REPO_ROOT / "tests/python/support/daemon_cleanup.py"), self.address],
+            env=_env(**self.env()), capture_output=True, timeout=60, check=True,
         )
         return False
 
@@ -238,7 +245,7 @@ class WarmOutputEquivalence(unittest.TestCase):
         tree = self._tree(name, source)
         code, output = _run(argv, tree, CADGEN_DAEMON="0")
         self.assertEqual(code, 0, output)
-        return _manifest(tree), output
+        return _manifest(tree, daemon_env={"CADGEN_DAEMON": "0"}), output
 
     def test_a_part_builds_identically_warm(self):
         argv = ["widget.py"]
@@ -250,7 +257,7 @@ class WarmOutputEquivalence(unittest.TestCase):
             code, warm_out = _run(argv, tree, **daemon.env())
             self.assertEqual(code, 0, warm_out)
             self.assertTrue(daemon.served_a_job(), "the warm run fell back to cold")
-            self.assertEqual(_manifest(tree), cold)
+            self.assertEqual(_manifest(tree, daemon_env=daemon.env()), cold)
         self.assertEqual(warm_out, cold_out)
 
     def test_an_assembly_builds_identically_warm(self):
@@ -260,7 +267,7 @@ class WarmOutputEquivalence(unittest.TestCase):
         with _Daemon(tree) as daemon:
             code, out = _run(argv, tree, **daemon.env())
             self.assertEqual(code, 0, out)
-            self.assertEqual(_manifest(tree), cold)
+            self.assertEqual(_manifest(tree, daemon_env=daemon.env()), cold)
 
     def test_four_parallel_builds_through_one_daemon_all_match_cold(self):
         """The case the pool exists for. Today this serialises; it must still be correct."""
@@ -278,7 +285,7 @@ class WarmOutputEquivalence(unittest.TestCase):
                     self.assertEqual(code, 0, out)
             for index, tree in enumerate(trees):
                 with self.subTest(build=index):
-                    self.assertEqual(_manifest(tree), cold)
+                    self.assertEqual(_manifest(tree, daemon_env=daemon.env()), cold)
 
     def test_a_drawing_package_is_byte_identical_warm(self):
         """DXF is the format that USED to have a determinism hazard: ezdxf's emitted
@@ -289,9 +296,11 @@ class WarmOutputEquivalence(unittest.TestCase):
         cold, _ = self._cold("plate.py", DRAWING, argv)
         self.assertTrue(cold, "the cold DXF build produced nothing to compare")
         tree = self._tree("plate.py", DRAWING)
-        code, out = _run(argv, tree, CADGEN_DAEMON="1")
-        self.assertEqual(code, 0, out)
-        self.assertEqual(_manifest(tree), cold)
+        with _Daemon(tree) as daemon:
+            code, out = _run(argv, tree, **daemon.env())
+            self.assertEqual(code, 0, out)
+            self.assertTrue(daemon.served_a_job(), "the warm DXF run fell back to cold")
+            self.assertEqual(_manifest(tree, daemon_env=daemon.env()), cold)
 
     def test_a_failing_build_fails_the_same_way_warm(self):
         """Exit code and message are contract too, not just successful output."""

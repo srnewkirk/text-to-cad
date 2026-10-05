@@ -16,6 +16,7 @@ rtree
 scipy
 
 # Repo tests only.
+psutil
 networkx
 lxml
 pytest

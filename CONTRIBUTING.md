@@ -601,6 +601,23 @@ that path.
 
 ## Git Hygiene
 
+Daemon lifecycle tests can run without importing a CAD kernel:
+
+```bash
+./.venv/bin/python -m unittest tests.python.packages.cadgen.test_daemon_retirement
+```
+
+These tests use private addresses, stores and tiny protocol workers to verify
+owned-daemon retirement, worker exit, idle shutdown and preservation of another
+daemon. Equivalence tests retire their private daemon through
+`tests/python/support/daemon_cleanup.py`; `cadgen.daemon --stop` is not a
+supported command. Cleanup failures must fail the test, and lazy artifact
+inspection must use that test's executor rather than the ambient daemon.
+
+The cleanup/isolation changes adapt upstream commit `8dd25579`; bounded
+listener wakeup and retry handling adapt `eaa11c21` and `0142bde8`. Private
+resident-worker and Windows RAM/commit limits remain unchanged.
+
 Do not commit local environments, dependency folders, caches, or temp files such
 as `.venv/`, `node_modules/`, `.vite/`, `dist/`, `tmp/`, or local credentials.
 Generated runtime changes should come from the production-output workflow, not
