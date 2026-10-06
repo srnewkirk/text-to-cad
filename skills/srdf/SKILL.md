@@ -5,7 +5,7 @@ description: MoveIt2 SRDF authoring, validation, and planning-semantics workflow
 
 # SRDF
 
-Provenance: maintained in [earthtojake/text-to-cad](https://github.com/earthtojake/text-to-cad).
+Provenance: maintained in [srnewkirk/text-to-cad](https://github.com/srnewkirk/text-to-cad).
 Use the installed local skill files as the runtime source of truth; the
 repository link is only for provenance and release review.
 
@@ -15,18 +15,27 @@ SRDF correctness is a **planning semantics** problem. The common failure is not 
 
 ## Setup
 
-This skill's commands are thin entrypoints over the `cadgen` distribution, which
-carries the Python build runtime and the JavaScript it executes. Install it once:
+For the personal `cad@homelab-plugins` installation, resolve this installed
+`SKILL.md` to an absolute path. The plugin root is two parents above the skill
+directory. On Windows, select the installed WSL2 distribution once with
+`python <plugin-root>/scripts/runtime/cad-runtime.py configure-wsl Ubuntu`.
+Linux and macOS stay native; an unavailable selected WSL runtime is an error.
 
 ```bash
-python -m pip install -r requirements.txt
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> --render setup
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> --render doctor
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> python -- -m cadgen.cli srdf validate robot.srdf
 ```
 
-Rendering additionally needs a browser, which pip cannot supply:
-
-```bash
-python -m playwright install chromium
-```
+Use this helper for every command: in later examples, `python` means its
+`python --` invocation and `cadgen` means that invocation followed by
+`-m cadgen.cli`. It reports backend, interpreter, managed wheel, workspace and
+store on stderr. Keep optional project `--pythonpath` and `--requirements`
+inputs consistent. Runtime setup and resource settings belong to the plugin.
+Do not install from source or resolve cadgen from PyPI. Rendering setup installs
+Playwright and matching Chromium; doctor checks imports and browser launch.
+Use `--browser-libs <dir>` for existing isolated Linux browser libraries when
+needed, preserve actual failure diagnostics, and do not install OS packages.
 
 ## Format boundary
 

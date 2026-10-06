@@ -1177,6 +1177,15 @@ class BatchSnapshotRenderer:
             try:
                 from playwright.async_api import async_playwright
             except ImportError as exc:
+                if not isinstance(exc, ModuleNotFoundError) or exc.name not in {
+                    "playwright", "playwright.async_api",
+                }:
+                    raise SnapshotError(
+                        f"Playwright import failed under {sys.executable}: "
+                        f"{type(exc).__name__}: {exc}. "
+                        "Repair the named dependency or interpreter access problem; "
+                        "installing Chromium cannot repair a Python import failure."
+                    ) from exc
                 raise SnapshotError(
                     "CAD snapshot requires the Python playwright package. "
                     "Install the invoking skill's own requirements.txt (it ships playwright), "

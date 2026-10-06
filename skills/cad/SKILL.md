@@ -5,24 +5,44 @@ description: Create, modify, inspect, and validate parametric CAD parts and asse
 
 # CAD generation, inspection, and validation
 
-Provenance: maintained in [earthtojake/text-to-cad](https://github.com/earthtojake/text-to-cad).
+Provenance: maintained in [srnewkirk/text-to-cad](https://github.com/srnewkirk/text-to-cad).
 Use the installed local skill files as the runtime source of truth; the
 repository link is only for provenance and release review.
 
 ## Setup
 
-This skill's commands are thin entrypoints over the `cadgen` distribution, which
-carries the Python build runtime and the JavaScript it executes. Install it once:
+For the personal `cad@homelab-plugins` installation, resolve this installed
+`SKILL.md` to an absolute path. The plugin root is two parents above the skill
+directory. Use its runtime helper for setup and every Python or cadgen command;
+do not install this plugin from a source checkout or resolve cadgen from PyPI.
+
+On Windows, select the installed WSL2 distribution once with
+`python <plugin-root>/scripts/runtime/cad-runtime.py configure-wsl Ubuntu`.
+Windows commands then run in that distribution and fail with a repair hint if
+it is unavailable. Linux and macOS use their native managed environment.
 
 ```bash
-python -m pip install -r requirements.txt
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> --render setup
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> --render doctor
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> python -- src/bracket.py
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> python -- -m cadgen.cli step inspect validate STEP/bracket.step
 ```
 
-Rendering additionally needs a browser, which pip cannot supply:
+The host `python` only bootstraps the helper. Its stderr receipt identifies the
+actual backend, interpreter, managed wheel, workspace and store. In the examples
+below, replace `python` with the helper's `python --` invocation and `cadgen` with
+the same invocation followed by `-m cadgen.cli`. Model scripts remain ordinary
+Python programs; document commands never execute model source.
 
-```bash
-python -m playwright install chromium
-```
+Use `--pythonpath src` and `--requirements <model-requirements>` when the project
+needs them, consistently for setup and invocation. These are project inputs;
+runtime discovery, dependencies and resource settings belong to the plugin.
+For rendering, `--render setup` installs Playwright and matching Chromium, and
+`--render doctor` checks imports and browser launch. Pass `--browser-libs <dir>`
+for an existing isolated Linux browser-library directory when required;
+setup adopts that library set into the plugin cache for later projects. Report
+the actual import or launch failure instead of calling every error missing
+Playwright. Do not install global OS packages automatically.
 
 ## Purpose
 
@@ -80,7 +100,12 @@ a job in the pool — generated or imported alike. **A door never refuses a
 document and never runs a script.** Whether a document is behind its script
 is the model's business (`cadgen store why`), not the door's.
 
-Use the active project Python interpreter; treat `python` in examples as an interpreter placeholder. Every operational verb is a `cadgen` subcommand (`python -m cadgen.cli <verb>` is the PATH-independent equivalent). Use `cadgen <verb> --help` for the complete current interface; reference docs show recommended workflows, not every flag. Install per `requirements.txt`; `cadgen doctor <skill-dir>` verifies the installed cadgen matches this skill's pin (docs drift silently on a mismatched install).
+Use the runtime selected in Setup; treat `python` and `cadgen` in examples as
+placeholders for that invocation. Every operational verb is a `cadgen`
+subcommand (`python -m cadgen.cli <verb>` is the PATH-independent equivalent).
+Use `cadgen <verb> --help` for the complete current interface; reference docs
+show recommended workflows, not every flag. `cadgen doctor <skill-dir>` checks
+the skill's version pin in addition to the helper's wheel provenance check.
 
 Target paths resolve from the command's current working directory, not from the skill directory. Run commands from the workspace that owns the artifacts and pass cwd-relative target paths so project CAD files never resolve accidentally under the skill directory.
 

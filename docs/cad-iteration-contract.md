@@ -34,6 +34,57 @@ evidence, not as an implicit production implementation.
 
 ## Required behavior
 
+### Installed runtime selection acceptance — corrected 2026-10-06
+
+Private 0.5.6 is released and installed. Its admission and incremental-workflow
+changes remain valid; release closure did not prove the ordinary project's
+runtime selection. The camera's later project-owned WSL setup is a working
+prototype and evidence, not the reusable plugin implementation.
+
+On this user's configured Windows/Ubuntu WSL2 host, ordinary installed-plugin
+CAD use must select the marketplace-managed Linux runtime for source execution,
+document inspection, exports, snapshots and Viewer. Runtime identity must be
+observable. Configured-but-unavailable WSL must fail with an actionable repair
+instruction, without silently selecting Windows. Native Linux/macOS remain
+native; this requirement is not a general remote execution platform.
+
+Ownership is explicit:
+
+- `text-to-cad` owns reusable runtime discovery, setup, invocation, diagnostics
+  and skill guidance. A host launcher wraps Python execution; model scripts
+  remain programs and document CLIs never become model-build doors.
+- The personal marketplace owns verified private wheel delivery and its thin
+  installation adapter. No source/worktree plugin installation or editing of
+  the installed cache is an acceptance shortcut.
+- Consumer projects own model sources, workspace/import paths and model-specific
+  dependencies. A thin adapter may call the installed plugin; projects must not
+  duplicate generic runtime management or hardcode its release internals.
+
+Keep the 4 GB WSL memory, four CPUs, 2 GB swap envelope and Kingserver unchanged.
+Keep one active geometry job, bounded cancellable admission, separate resident
+limits and zero speculative spares. Do not weaken allocation policy to make a
+test pass or infer a speed guarantee from successful Linux execution.
+
+The smallest implementation sequence is shared helper and meaningful routing/
+setup/diagnostic tests; marketplace bootstrap integration; sequential camera and
+tiny independent fixture checks; then review for managed promotion. Preserve
+working project setup until its replacement is verified. No broad revert,
+blanket rebuild or premature release is required.
+
+Final acceptance asks whether a fresh CAD session uses the **installed plugin's
+normal entry points** to author, build, inspect and review one coherent change
+in both fixtures without bespoke runtime setup. Check Linux identity, managed
+wheel provenance, rendering dependencies, explainable affected builds, useful
+failure diagnosis, reuse and last-good preservation. Candidate/package tests
+and installed-workflow acceptance are separate gates. Until managed promotion
+and those fresh-session checks pass, report implementation as uninstalled.
+
+The seven modeling requirements below remain in force. Existing receipts cover
+representative holder/plate increments, validity, snapshots, reuse, failure
+preservation and bounded admission; the matrix records the remaining subset.
+Do not make every possible matrix case a new prerequisite for this routing fix.
+Physical screw/snap/cable fit and strength remain physical-trial questions.
+
 1. **Coherent increments.** Choose the smallest design change that produces a
    useful, reviewable result. Its boundary follows intent, coupling, and
    uncertainty. Batch predictable coupled edits, such as holes, bosses, and
