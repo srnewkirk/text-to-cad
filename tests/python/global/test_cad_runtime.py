@@ -54,11 +54,27 @@ class CadRuntimeTests(unittest.TestCase):
         libs = self.workspace / "libs"
         libs.mkdir()
         (libs / "lib-example.so").write_bytes(b"isolated library fixture")
-        cache = Path(self.temp.name) / "runtime-cache"
+        cache = Path(self.temp.name) / "runtime-cache" / "release-one"
         cad_runtime._adopt_browser_libraries(str(libs), cache)
-        self.assertEqual((cache / "browser-libs" / "lib-example.so").read_bytes(), b"isolated library fixture")
-        # Repeated setup preserves the already adopted shared cache.
-        cad_runtime._adopt_browser_libraries(str(libs), cache)
+        self.assertEqual((cache.parent / "browser-libs" / "lib-example.so").read_bytes(), b"isolated library fixture")
+        # Another wheel release uses the same adopted OS dependency cache.
+        cad_runtime._adopt_browser_libraries(str(libs), cache.parent / "release-two")
+
+    def test_changed_model_dependencies_get_a_separate_derived_store(self):
+        req = self.workspace / "requirements.txt"
+        req.write_text("numpy==2.0.0\n", encoding="utf-8")
+        args = mock.Mock(workspace=str(self.workspace), requirements=str(req))
+        contract = cad_runtime._contract(self.root)
+        workspace, cache, first_python = cad_runtime._paths(args, contract)
+        first_store = cad_runtime._store_path(workspace, cache, first_python)
+        self.assertEqual(first_store, cad_runtime._store_path(workspace, cache, first_python))
+        req.write_text("numpy==2.1.0\n", encoding="utf-8")
+        workspace, cache, second_python = cad_runtime._paths(args, contract)
+        self.assertNotEqual(first_python, second_python)
+        self.assertNotEqual(first_store, cad_runtime._store_path(workspace, cache, second_python))
+        req.write_text("-r shared.txt\n", encoding="utf-8")
+        with self.assertRaisesRegex(cad_runtime.RuntimeErrorMessage, "flat file"):
+            cad_runtime._paths(args, contract)
 
     def test_adding_rendering_does_not_recreate_a_ready_environment(self):
         args = mock.Mock(requirements=None, render=True, browser_libs=None)
@@ -233,8 +249,9 @@ class CadRuntimeTests(unittest.TestCase):
             status = cad_runtime._setup(args, self.root, self.receipt, "linux", None, workspace, cache, python)
         self.assertEqual(status, 0)
         self.assertIn("--seed", calls[0][0])
-        self.assertIn("trimesh==5.1.0", (cache / "model-requirements.txt").read_text(encoding="utf-8"))
-        self.assertNotIn("cadgen==0.5.6", (cache / "model-requirements.txt").read_text(encoding="utf-8"))
+        filtered_path = python.parent.parent / "model-requirements.txt"
+        self.assertIn("trimesh==5.1.0", filtered_path.read_text(encoding="utf-8"))
+        self.assertNotIn("cadgen==0.5.6", filtered_path.read_text(encoding="utf-8"))
         adapter_call = next(argv for argv, _ in calls if argv[1].endswith("install-cadgen-runtime.py"))
         self.assertNotIn("--no-deps", adapter_call)
 

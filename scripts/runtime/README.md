@@ -30,19 +30,27 @@ python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <workspace> pyth
 ```
 
 Use `--pythonpath src` for project imports and `--requirements <file>` for
-model-specific dependencies, consistently for setup and later commands. Paths
+model-specific dependencies in a flat requirements file, consistently for setup
+and later commands. Nested requirement/constraint files are rejected because
+they would defeat the content key and could resolve cadgen from an index. Paths
 resolve from the declared workspace. Cadgen is installed only from the verified
 private wheel. Its environment is keyed by wheel identity and requirements
-content; each workspace has a separate derived store. Model scripts are ordinary
-Python programs. The helper does not introduce a model build command.
+content; each workspace/environment pair has a separate derived store. Model
+scripts are ordinary Python programs. The helper does not introduce a model
+build command.
 
 Rendering includes Playwright plus matching Chromium. On a minimal Linux host,
 `--browser-libs <directory>` can adopt an existing isolated library set during
-rendering setup; the helper copies it into its own cache for subsequent projects.
+rendering setup; the helper copies it into its own shared cache for subsequent
+projects and wheel upgrades.
 Doctor actually launches Chromium and preserves import and shared-library
 diagnostics. Missing browser binaries, missing Playwright and broken dependency
 imports are distinct failures. Snapshot workers receive the current client's
 library environment, even when the daemon was warmed before rendering setup.
+
+Viewer announces readiness and then serves in the foreground. Start it in a
+managed background tool session and read its returned JSON URL; subsequent
+launches reuse it. Do not queue another command after a newly started server.
 
 The stderr JSON receipt records the backend, distro, Python, kernel, verified
 wheel SHA, workspace and store. Resource defaults are one geometry/component/

@@ -242,7 +242,11 @@ def _paths(args, contract: dict) -> tuple[Path, Path, Path]:
     if args.requirements:
         requirements = Path(args.requirements).expanduser().resolve()
         try:
-            dependency_key = hashlib.sha256(requirements.read_bytes()).hexdigest()[:16]
+            content = requirements.read_bytes()
+            if any(re.match(r"\s*(?:-r|-c|--requirement(?:=|\s)|--constraint(?:=|\s))", line)
+                   for line in content.decode("utf-8-sig").splitlines()):
+                raise RuntimeErrorMessage("Model requirements must be a flat file; nested requirements or constraints are not supported by runtime content identity.")
+            dependency_key = hashlib.sha256(content).hexdigest()[:16]
         except OSError as exc:
             raise RuntimeErrorMessage(f"Cannot read model requirements {requirements}: {exc}") from exc
     venv = cache / "environments" / dependency_key / "venv"
@@ -250,7 +254,7 @@ def _paths(args, contract: dict) -> tuple[Path, Path, Path]:
     return workspace, cache, python
 
 
-def _identity(backend: str, distro: str | None, python: Path, contract: dict, workspace: Path, cache: Path) -> dict:
+def _identity(backend: str, distro: str | None, python: Path, contract: dict, workspace: Path, cache: Path, browser_libs: str | None = None) -> dict:
     py = (_run([python, "-c", "import sys;print(sys.executable);print('.'.join(map(str,sys.version_info[:3])))"], check=False, capture=True)
           if python.is_file() else subprocess.CompletedProcess([], 127, stdout="", stderr="runtime interpreter is missing"))
     version, pyver = (py.stdout.strip().splitlines() + ["unknown", "unknown"])[:2]
@@ -258,9 +262,16 @@ def _identity(backend: str, distro: str | None, python: Path, contract: dict, wo
     return {"backend": backend, "distribution": distro, "python": version, "pythonVersion": pyver,
             "cadgenVersion": contract["version"] if ok else None, "wheelSha256": contract["sha256"],
             "platform": platform.system(), "kernel": platform.release(),
-            "browserLibraries": str(cache / "browser-libs") if (cache / "browser-libs").is_dir() else None,
+            "browserLibraries": str(Path(browser_libs).expanduser().resolve()) if browser_libs else None,
             "runtimeContract": contract["contract"], "provenance": provenance, "workspace": str(workspace),
-            "store": str(cache / "store" / hashlib.sha256(str(workspace).encode()).hexdigest()[:16])}
+            "store": str(_store_path(workspace, cache, python))}
+
+
+def _store_path(workspace: Path, cache: Path, python: Path) -> Path:
+    # A changed model dependency set selects another interpreter environment;
+    # its derived results must not pass the previous environment's fresh gate.
+    identity = f"{workspace}\n{python.parent.parent}"
+    return cache / "store" / hashlib.sha256(identity.encode()).hexdigest()[:16]
 
 
 def _emit(info: dict) -> None:
@@ -268,9 +279,10 @@ def _emit(info: dict) -> None:
 
 
 def _adopt_browser_libraries(browser_libs: str | None, cache: Path) -> None:
-    if browser_libs and not (cache / "browser-libs").exists():
-        # Keep reusable dependencies in the plugin cache, outside consumers.
-        shutil.copytree(Path(browser_libs).expanduser().resolve(), cache / "browser-libs")
+    shared = cache.parent / "browser-libs"
+    if browser_libs and not shared.exists():
+        # OS browser libraries are shared across wheel upgrades and consumers.
+        shutil.copytree(Path(browser_libs).expanduser().resolve(), shared)
 
 
 def _setup(args, root: Path, contract: dict, backend: str, distro: str | None, workspace: Path, cache: Path, python: Path) -> int:
@@ -279,7 +291,7 @@ def _setup(args, root: Path, contract: dict, backend: str, distro: str | None, w
     if ready and (not args.render or _render_check(python, args.browser_libs)[0]):
         if args.render:
             _adopt_browser_libraries(args.browser_libs, cache)
-        _emit(_identity(backend, distro, python, contract, workspace, cache))
+        _emit(_identity(backend, distro, python, contract, workspace, cache, args.browser_libs))
         return 0
     expected_python = contract.get("python")
     uv = _uv_executable()
@@ -301,7 +313,7 @@ def _setup(args, root: Path, contract: dict, backend: str, distro: str | None, w
         # cadgen is installed only from the verified receipt wheel, never from an index.
         lines = req.read_text(encoding="utf-8").splitlines()
         filtered = [line for line in lines if not re.match(r"\s*cadgen(?:\s|[<=>!~;\[]|$)", line, re.I)]
-        filtered_path = cache / "model-requirements.txt"
+        filtered_path = python.parent.parent / "model-requirements.txt"
         filtered_path.write_text("\n".join(filtered) + "\n", encoding="utf-8")
         if uv:
             _run([uv, "pip", "install", "--python", python, "-r", filtered_path], env=setup_env)
@@ -328,7 +340,7 @@ def _setup(args, root: Path, contract: dict, backend: str, distro: str | None, w
     ok, reason = _installed_identity(python, contract)
     if not ok:
         raise RuntimeErrorMessage(f"Managed runtime setup did not establish wheel provenance: {reason}")
-    _emit(_identity(backend, distro, python, contract, workspace, cache))
+    _emit(_identity(backend, distro, python, contract, workspace, cache, args.browser_libs))
     return 0
 
 
@@ -394,14 +406,14 @@ def _dispatch(argv: Sequence[str] | None = None) -> int:
         result = _wsl_call(distro, forwarded, check=False)
         return result.returncode
     workspace, cache, python = _paths(args, contract)
-    if not args.browser_libs and (cache / "browser-libs").is_dir():
-        args.browser_libs = str(cache / "browser-libs")
+    if not args.browser_libs and (cache.parent / "browser-libs").is_dir():
+        args.browser_libs = str(cache.parent / "browser-libs")
     cache.mkdir(parents=True, exist_ok=True)
-    store = cache / "store" / hashlib.sha256(str(workspace).encode()).hexdigest()[:16]
+    store = _store_path(workspace, cache, python)
     store.mkdir(parents=True, exist_ok=True)
     if args.mode == "setup":
         return _setup(args, root, contract, backend, distro, workspace, cache, python)
-    info = _identity(backend, distro, python, contract, workspace, cache)
+    info = _identity(backend, distro, python, contract, workspace, cache, args.browser_libs)
     _emit(info)
     if args.mode in ("status", "doctor"):
         ok, reason = _installed_identity(python, contract)
