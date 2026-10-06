@@ -55,7 +55,7 @@ while IFS= read -r manifest; do
   rm -f "$manifest.bak"
   echo "pinned: $manifest -> cadgen==$version"
 done < <(
-  find . \
+  find ./skills \
     \( -name node_modules -o -name .git -o -name .venv -o -name tmp -o -name models \) -prune -o \
     -name requirements.txt -type f -print | sort
 )
