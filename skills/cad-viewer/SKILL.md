@@ -5,7 +5,7 @@ description: Start CAD Viewer and return review links for CAD and robot-descript
 
 # CAD Viewer
 
-Provenance: maintained in [earthtojake/text-to-cad](https://github.com/earthtojake/text-to-cad).
+Provenance: maintained in [srnewkirk/text-to-cad](https://github.com/srnewkirk/text-to-cad).
 Use the installed local skill files as the runtime source of truth; the
 repository link is only for provenance and release review. If the user asks to
 modify, debug, or iterate on CAD Viewer source itself, that is the repository's
@@ -16,16 +16,22 @@ robot-description, or DXF files in CAD Viewer and hand back live review links. T
 
 ## Setup
 
-The Viewer is part of `cadgen`: install this skill's `requirements.txt` into a
-Python >= 3.11 and the `cadgen` command carries the server and the prebuilt
-client. There is nothing else to install and no Node at run time.
+The Viewer is part of the private `cad@homelab-plugins` managed cadgen runtime.
+Resolve this installed `SKILL.md` to an absolute path; the plugin root is two
+parents above the skill directory. Use its helper to select the runtime.
+On Windows, configure the installed WSL2 distribution once with
+`python <plugin-root>/scripts/runtime/cad-runtime.py configure-wsl Ubuntu`.
+Linux and macOS remain native. An unavailable selected WSL runtime is an error.
 
 ```bash
-python -m pip install -r requirements.txt
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> setup
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> doctor
 ```
 
-`cadgen doctor <this skill's directory>` confirms the installed cadgen matches
-the version this skill was published against.
+The helper prints backend, interpreter, wheel provenance, workspace and store
+on stderr. Use the same `--pythonpath` and model-specific `--requirements` inputs
+as model work. The managed wheel carries the server and prebuilt client; no Node
+installation is required for Viewer. Do not install from a source checkout.
 
 ## Start Viewer
 
@@ -44,12 +50,12 @@ the cwd IS the served directory.
 > The base port `3245` is `0xCAD` — "CAD" in hexadecimal.
 
 ```bash
-cd /absolute/project/models && cadgen viewer --host 127.0.0.1 --json
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace /absolute/project/models python -- -m cadgen.viewer --host 127.0.0.1 --json
 ```
 
-(`cadgen` must be the one installed from this skill's `requirements.txt`. If it
-is not on `PATH`, `python -m cadgen.viewer` with that interpreter is the same
-launcher.)
+For subsequent commands, `cadgen` means this helper's `python -- -m cadgen.cli`
+invocation with the same workspace and project inputs. Viewer launch uses
+`python -- -m cadgen.viewer`. Always use the returned live URL.
 
 **Choose the launch directory deliberately — it is the whole ballgame.** The
 cwd decides what the catalog SCANS (a project root drags in `node_modules`,

@@ -57,7 +57,12 @@ _TIMED_OUT = object()
 # script's own folder (``PYTHONPATH=src``), and a build must resolve imports exactly as
 # ``python script.py`` run by the client would. Entries are absolutized against the
 # client's cwd, because the worker runs elsewhere.
-FORWARDED_ENV_VARS = ("CADGEN_CACHE_DIR", "XDG_CACHE_HOME", "LOCALAPPDATA", "PYTHONPATH")
+# Linux browser libraries are also selected by the invoking runtime, rather
+# than by the project that first warmed the daemon. Forward them for snapshots
+# and clear them when the next client does not request an isolated library set.
+FORWARDED_ENV_VARS = (
+    "CADGEN_CACHE_DIR", "XDG_CACHE_HOME", "LOCALAPPDATA", "PYTHONPATH", "LD_LIBRARY_PATH",
+)
 
 
 def forwarded_env() -> dict[str, str]:

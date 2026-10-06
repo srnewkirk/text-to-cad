@@ -5,18 +5,35 @@ description: Generate, regenerate, and validate 2D DXF drawings from Python buil
 
 # DXF generation and validation
 
-Provenance: maintained in [earthtojake/text-to-cad](https://github.com/earthtojake/text-to-cad).
+Provenance: maintained in [srnewkirk/text-to-cad](https://github.com/srnewkirk/text-to-cad).
 Use the installed local skill files as the runtime source of truth; the
 repository link is only for provenance and release review.
 
 ## Setup
 
-This skill's commands are thin entrypoints over the `cadgen` distribution, which
-carries the Python build runtime and the JavaScript it executes. Install it once:
+For the personal `cad@homelab-plugins` installation, resolve this installed
+`SKILL.md` to an absolute path. The plugin root is two parents above the skill
+directory. Use its managed runtime helper for all Python and cadgen commands.
+On Windows, configure the installed WSL2 distribution once with
+`python <plugin-root>/scripts/runtime/cad-runtime.py configure-wsl Ubuntu`.
+Linux and macOS stay native; an unavailable selected WSL runtime is an error.
 
 ```bash
-python -m pip install -r requirements.txt
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> --render setup
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> --render doctor
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> python -- src/gasket.py
+python <plugin-root>/scripts/runtime/cad-runtime.py --workspace <cad-workspace> python -- -m cadgen.cli store why src/gasket.py
 ```
+
+The helper reports the actual backend, Python, managed wheel, workspace and
+store on stderr. In later examples, `python` means its `python --` invocation
+and `cadgen` means that invocation followed by `-m cadgen.cli`. Use consistent
+`--pythonpath src` and optional model-specific `--requirements <file>` inputs.
+The plugin owns runtime setup and resource settings; the project owns paths and
+model requirements. Do not install this plugin from source or cadgen from PyPI.
+Rendering setup installs Playwright and matching Chromium, and doctor checks
+imports and browser launch. Pass `--browser-libs <dir>` for existing isolated
+Linux browser libraries when needed; do not install OS packages automatically.
 
 Drawings are build123d geometry, so a drawing build loads the CAD kernel like a
 STEP build does (~2.5s cold; the warm daemon absorbs it on re-runs). Only

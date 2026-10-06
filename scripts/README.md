@@ -9,6 +9,7 @@ step; nothing else belongs here (one-off helpers go in `tmp/`).
 | Build the packaged runtime | `scripts/bundle/bundle.sh --clean` |
 | Check the packaged runtime is fresh | `scripts/bundle/bundle.sh --check` |
 | Check the packaged runtime from Windows through WSL 2 | `scripts/dev/build-in-wsl.ps1` |
+| Select and run the installed private CAD runtime | `scripts/runtime/cad-runtime.py --workspace <cad-workspace> python -- <script.py>` |
 | Run code tests | `scripts/test/test.sh` |
 | Run docs checks | `scripts/test/test-docs.sh` |
 | Check the release version and skill pins | `scripts/release/check-version.sh` |
@@ -18,6 +19,16 @@ step; nothing else belongs here (one-off helpers go in `tmp/`).
 | Uninstall local skill links | `scripts/install/uninstall-skills.sh --agent codex` |
 
 ## Index
+
+`runtime/cad-runtime.py` — standard-library bootstrap shipped with the private
+plugin. Selects the configured Windows WSL2 distribution, or native Linux/macOS,
+and manages environments for the marketplace wheel contract and optional model
+requirements. `setup` prepares dependencies; `status` and `doctor` report actual
+runtime identity; `python --` executes ordinary Python scripts or modules from
+the declared workspace with its own derived store. Rendering setup and doctor
+also prepare and check Playwright/Chromium. Delivery supplies the verified wheel
+receipt and thin wheel installer; this helper owns reusable host selection and
+invocation. It is not a source-checkout plugin installer or a model-build CLI.
 
 `bundle/` — cadgen's packaged runtime (`packages/cadgen/src/cadgen/_runtime`).
 
