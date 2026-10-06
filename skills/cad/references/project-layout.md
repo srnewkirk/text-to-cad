@@ -107,14 +107,12 @@ Those three imports are the three kinds of dependency a model can have —
 store why src/<model>.py` shows which ones a model has and whether each is
 current. Importing a model never builds it; calling it inside your body does.
 
-Build from anywhere: `python src/plate.py`. Build-if-missing and rebuild are
-the same command — the freshness gate runs first, so an unchanged model is a
-no-op. There is no project-level build command: regenerate a whole project by
-running each script.
-
-```bash
-for f in src/*.py; do python "$f"; done
-```
+Build explicit targets with `python src/plate.py`; the freshness gate makes an
+unchanged model a no-op. For a design change, identify affected models and
+their consuming assembly targets, then build those targets. A parent build
+pulls its children, so building the affected root normally covers its stale
+dependencies. Build several independent targets only when the task requires
+them; there is no need to sweep the project directory.
 
 The CAD Viewer opened at the project root catalogs the format folders'
 artifacts (scripts never appear); before anything is built, discovery is
@@ -273,28 +271,25 @@ forever. Treat a rename as an edit PLUS a cleanup, done conservatively:
    orphans appear as exactly the deletions you expect, and anything
    unexpected means step 1 was wrong.
 
-## Building many models
+## Building affected models
 
-Running the root assembly already builds its children in parallel. Distinct
-roots fan out safely too: builds never wait on or cancel one another, and two
-concurrent runs of one script both complete, with the store keeping the result
-whose sources match the files as they are now (nothing corrupts).
+Running a root assembly builds stale children in parallel. Child builds can
+therefore consume several workers even when you invoke only one root. Build
+only the targets needed for the current coherent change, and inspect
+`cadgen store why <model.py>` when the observed rebuild scope is surprising.
+Daemon admission reports cancellable waiting when active work, imports, or owned
+retirement may free resident capacity. It refuses when no productive work is
+observed after a short transition grace, or the admission deadline expires.
+Waiting parents still count as resident workers. Windows/Linux check soft
+available memory headroom before spawning and warm reuse; this cannot guarantee
+that later model allocations fit. Avoid wide fan-out,
+especially on memory-limited machines. Batch snapshot views into
+one `--job` packet, and avoid concurrent identical mesh exports of one
+document; the shared ledger makes those safe, not free.
 
-```bash
-ls src/*.py | xargs -n1 -P4 python
-```
-
-Running builds are limited to one per core (`CADGEN_JOBS` overrides); the
-rest queue, so a wide fan-out costs no wall time over the ideal. Two costs
-worth avoiding: parallel snapshot invocations each pay a headless browser —
-batch several views into one `--job` packet instead — and concurrent identical
-mesh exports of one document waste work (the shared ledger makes them safe,
-not free).
-
-Several agents building one assembly at once: give each its own entry — a
-small model that composes only its subsystem — verify there, and build the
-full assembly once when the subsystems land; the root then links the
-subsystems' results and rebuilds only what changed.
+For independent subsystem changes, use their model entry points for focused
+checks, then build the integrating root once the coordinated changes are
+ready. The root links subsystem results and rebuilds what changed.
 
 ## `src/README.md` — the model catalog
 

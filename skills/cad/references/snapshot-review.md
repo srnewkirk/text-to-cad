@@ -4,7 +4,7 @@ Read this file when choosing saved CAD `cadgen step snapshot` outputs for primar
 
 ## Policy
 
-Snapshot validation is mandatory. Every created or visibly updated primary STEP/STP part or assembly gets at least one reviewed PNG snapshot; deterministic checks passing is not a reason to skip. Use CAD `cadgen step snapshot` rather than opening the viewer manually or using Playwright; snapshots are faster, lighter, more precise, and more agent-friendly. Snapshots are PNG stills; review motion interactively in the viewer. For still evidence of a pose or of one moment in a clip, pass `--kinematics` and/or `--animation CLIP --time SECONDS` (see `kinematics.md`, "Reviewing motion") — one frame, never a sequence.
+Every created or visibly updated primary STEP/STP part or assembly gets at least one reviewed PNG snapshot; deterministic checks passing is not a reason to skip. Choose the view and packet size for the changed geometry and uncertainty. A simple, localized change usually needs one useful view; add views or a section only when they answer a concrete review question. Preserve snapshots for visibly changed primary parts and the final integrated assembly. Use CAD `cadgen step snapshot` for saved evidence. Snapshots are PNG stills; review motion interactively in the viewer. For still evidence of a pose or of one moment in a clip, pass `--kinematics` and/or `--animation CLIP --time SECONDS` (see `kinematics.md`, "Reviewing motion") — one frame, never a sequence.
 
 Skip saved snapshots only when no visible geometry was created or updated, or no valid artifact exists:
 
@@ -19,7 +19,7 @@ Do not loop on snapshots. Rerender only when a source repair changed visible geo
 
 ## Packet sizing
 
-One PNG is enough for a simple static part. Use the small multi-view packet when semantic errors are plausible from shape complexity or prompt intent:
+One PNG is enough for a simple static part or a localized, low-uncertainty change. Use a multi-view packet when semantic errors are plausible from shape complexity or prompt intent:
 
 - assemblies or more than one body/part
 - holes on multiple faces or multiple axes

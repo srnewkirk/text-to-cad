@@ -167,15 +167,16 @@ The essentials; `references/step-generation.md` has the code and the edge cases.
   child's — stored once, shared by every parent. Place a child with
   `Pos/Rot/Location * child` or `child.moved(loc)`; never `child.located(loc)`
   (it deep-copies the geometry, so the parent owns a copy instead of linking).
-- **Every build is parallel.** A child call submits the child's build and
+- **Child builds run in parallel.** A child call submits the child's build and
   returns at once; siblings build on their own workers while the body keeps
   going; the parent waits when it first reads the geometry — normally the
   closing `bd.Compound(children=[...])`. Nothing to configure, nothing to
   annotate.
-- **Builds never wait on or cancel each other.** Two runs of one model both
-  run; the store keeps the result whose sources match the files as they are
-  now, so the disk ends at the newer source. Editing a child while its parent
-  builds leaves the parent finished against the child it pinned.
+- **Concurrent builds do not cancel each other.** Admitted top-level runs of
+  one model compute independently; the store keeps the result whose sources
+  match the files as they are now. Worker admission may wait or fail under
+  contention. Editing a child while its parent builds leaves the parent
+  finished against the child it pinned.
 - **A rebuilt part does not update the assemblies that use it.** Dependency
   is pull: rebuild the parent (`python assembly.py`) to pick up a child's
   change. A child edit that yields identical geometry leaves parents current.
@@ -204,12 +205,15 @@ The essentials; `references/step-generation.md` has the code and the edge cases.
 
 **Workers.** A warm daemon is on by default: each model gets a persistent
 worker (a second, an *extra*, when the model is asked for while already
-building); spares stand by so a new model never pays the import; idle workers
+building); available spares avoid another kernel import; idle workers
 unbind after ten minutes. Running builds follow the platform's native-worker
 limit; Windows defaults to at most four and reduces further under memory
 pressure (`CADGEN_JOBS` overrides). Component and validation pools use the same
 default policy (`CADGEN_COMPONENT_WORKERS` and `CADGEN_VALIDATE_WORKERS`
 override their respective pools); a parent waiting on its children holds no slot.
+Daemon admission checks available memory before spawning and warm reuse on
+Windows/Linux, reclaims owned idle workers, and reports cancellable waiting.
+Its estimates do not guarantee that later geometry allocations fit.
 `CADGEN_DAEMON=0` uses transient workers spawned for that one run — still
 parallel, still the same store — and is the mode for tests and debugging.
 `cadgen daemon status` lists workers, spares and the running/queued jobs.
@@ -305,16 +309,22 @@ OUT is written exactly as given (a relative path against the current working dir
 
 Scale depth to the task: a simple part needs a short brief and few spec-driven checks; assemblies and fit-critical work need full positioning and alignment validation.
 
+Use the authoring steps for source creation and modification. Read-only
+inspection, reference selection, and export-only requests use the relevant
+document checks; they do not require editing or rebuilding unchanged source.
+
 1. **Classify the task.** New part, new assembly, source modification, direct STEP/STP inspection, reference selection, measurement/alignment check, snapshot review, or mesh output request.
 2. **Load only the needed references.** Use the triggers below instead of reading the whole reference set.
 3. **Write a natural-language CAD brief.** Extract dimensions, units, coordinate convention, feature intent, output paths, assumptions, and validation targets from all provided inputs — prose, reference images, technical drawings. Use `references/cad-brief.md`.
 4. **Check named purchasable components.** When an assembly includes named off-the-shelf actuators, servos, motors, electronics boards, connectors, or other purchasable components, search `$step-parts` before creating simplified placeholder geometry. If no exact match is found, record the miss and then use a documented bounding volume.
 5. **Plan before coding.** Define the constants and factory arguments, intent labels, source paths, expected bounding boxes, and any mating/positioning datums before editing.
-6. **Edit source, not generated artifacts.** Author a plain `.py` model script with one decorated function (shared code lives in plain helper modules; see `references/step-generation.md`). When a model script exists, run IT, never hand-edit its exported STEP. Imported STEP/STP files (no script) are handed straight to `cadgen step inspect`, `step snapshot` and the mesh doors — each compiles whatever it needs on demand.
-7. **Build explicit targets.** Run each model script directly (`python <model>.py`); do not sweep directories. A parent builds its children as it calls them, so running the root is the whole build. Declare `@stl`/`@threemf`/`@glb` outputs on the model, or run `cadgen stl|3mf|glb build` for one-off mesh files. For multi-model project structure, read `references/project-layout.md`.
-8. **Validate geometrically.** Run `cadgen step inspect refs <step-or-cad-target> --facts --planes --positioning` as the baseline, then verify the dimensions and relationships the user's spec calls out with targeted `measure`, `align`, `frame`, or `diff` checks. Run `cadgen step inspect validate <step-or-cad-target>` for geometry soundness: `refs --facts` reports counts and bounds, and its `ok` field covers ref resolution only — an open shell and an inverted solid both pass it.
-9. **Snapshot the primary STEP — snapshot validation is mandatory.** After creating or visibly updating a STEP/STP part or assembly, ALWAYS run `cadgen step snapshot` against it and review the output; deterministic checks passing is not a reason to skip. The only skip cases are documented in `references/snapshot-review.md` (no visible geometry changed, or no valid artifact exists); report the reason when skipping. A mesh-only model is reviewed with its format's snapshot door.
-10. **Repair and rerun.** If a check fails, change the smallest responsible source section, rebuild, and rerun the failed validation.
+6. **Choose a coherent increment.** Let design intent, coupling, and uncertainty set its boundary. Batch predictable coupled edits such as a hole, its boss, and its counterbore; isolate uncertain or risky geometry before adding unrelated changes. Complete the affected edit/build/inspect loop before moving to unrelated work. This does not require a commit, report, or approval after every increment.
+7. **Model functional units clearly.** Use purpose-named features within the part that owns them; a feature name is not a runtime build or cache unit. Keep purchased parts as external constraints at the fit fidelity needed. Define each shared mating interface once and consume that definition from both mating sides and their fit checks.
+8. **Edit source, not generated artifacts.** Author a plain `.py` model script with one decorated function (shared code lives in plain helper modules; see `references/step-generation.md`). When a model script exists, run IT, never hand-edit its exported STEP. Imported STEP/STP files (no script) are handed straight to `cadgen step inspect`, `step snapshot` and the mesh doors — each compiles whatever it needs on demand.
+9. **Build affected targets.** Run explicit model scripts (`python <model>.py`) for the changed model and affected consumers; a parent builds stale children as it calls them. Reuse valid results, and use `cadgen store why <model.py>` to explain unexpected work before raising limits. Avoid blanket directory sweeps or broad parallel fan-out. Daemon admission checks soft memory headroom on Windows/Linux and reports cancellable waiting for releasable contention, with bounded refusal when capacity cannot become available. It cannot guarantee that geometry fits. Declare `@stl`/`@threemf`/`@glb` outputs on the model, or run `cadgen stl|3mf|glb build` for one-off mesh files. For multi-model project structure, read `references/project-layout.md`.
+10. **Validate geometrically.** Run `cadgen step inspect refs <step-or-cad-target> --facts --planes --positioning` as the baseline, then verify the dimensions and relationships the user's spec calls out with targeted `measure`, `align`, `frame`, or `diff` checks. Run `cadgen step inspect validate <step-or-cad-target>` for geometry soundness: `refs --facts` reports counts and bounds, and its `ok` field covers ref resolution only — an open shell and an inverted solid both pass it.
+11. **Snapshot the primary STEP.** Review at least one snapshot for each visibly changed primary STEP/STP part or assembly. Choose a packet proportional to the uncertainty and visual question; preserve required primary snapshots, final integration review, fabrication checks, and Viewer handoff. See `references/snapshot-review.md` for valid skip cases and packet sizing. A mesh-only model is reviewed with its format's snapshot door.
+12. **Repair and rerun.** If a check fails, change the smallest responsible source section, rebuild, and rerun the failed validation. Preserve last-good source and artifacts with existing project tools before replacing them; the derived store is not a source checkpoint. No per-increment commit is required.
 
 ## Handoff
 

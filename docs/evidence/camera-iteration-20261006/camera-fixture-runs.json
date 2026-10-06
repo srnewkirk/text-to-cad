@@ -1,0 +1,901 @@
+[
+  {
+    "scenario": "baseline-holder",
+    "target": "src/design/camera_display/display_holder.py",
+    "exitCode": 1,
+    "elapsedSeconds": 63.213260354999996,
+    "processTreePeakRssBytes": 1107202048,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3562496000
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3602685952
+    },
+    "outputHashesBefore": {},
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d"
+    },
+    "log": "baseline-holder.log"
+  },
+  {
+    "scenario": "baseline-holder-retry",
+    "target": "src/design/camera_display/display_holder.py",
+    "exitCode": 0,
+    "elapsedSeconds": 25.203902728000003,
+    "processTreePeakRssBytes": 757035008,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3563343872
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3534921728
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d"
+    },
+    "modelStates": {
+      "src/design/camera_display/display_holder.py": [
+        "building",
+        "done"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "baseline-holder-retry.log"
+  },
+  {
+    "scenario": "baseline-plate",
+    "target": "src/design/camera_display/wall_plate.py",
+    "exitCode": 0,
+    "elapsedSeconds": 16.333327701,
+    "processTreePeakRssBytes": 613490688,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3534921728
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3530313728
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3"
+    },
+    "modelStates": {
+      "src/design/camera_display/wall_plate.py": [
+        "building",
+        "done"
+      ]
+    },
+    "log": "baseline-plate.log"
+  },
+  {
+    "scenario": "baseline-holder_fit",
+    "target": "src/assemblies/camera_display/display_holder_fit.py",
+    "exitCode": 0,
+    "elapsedSeconds": 15.221255917999997,
+    "processTreePeakRssBytes": 604753920,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3530313728
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3541737472
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1"
+    },
+    "modelStates": {
+      "src/assemblies/camera_display/display_holder_fit.py": [
+        "building",
+        "done"
+      ],
+      "src/design/camera_display/display_holder.py": [
+        "current"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "baseline-holder_fit.log"
+  },
+  {
+    "scenario": "baseline-full_fit",
+    "target": "src/assemblies/camera_display/wall_plate_fit.py",
+    "exitCode": 0,
+    "elapsedSeconds": 18.264255794000007,
+    "processTreePeakRssBytes": 612225024,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3541811200
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3582160896
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/assemblies/camera_display/wall_plate_fit.py": [
+        "building",
+        "done"
+      ],
+      "src/design/camera_display/wall_plate.py": [
+        "current"
+      ],
+      "src/design/camera_display/display_holder.py": [
+        "current"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "baseline-full_fit.log"
+  },
+  {
+    "scenario": "unchanged-full-fit",
+    "target": "src/assemblies/camera_display/wall_plate_fit.py",
+    "exitCode": 0,
+    "elapsedSeconds": 10.290773908999995,
+    "processTreePeakRssBytes": 496738304,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3586965504
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3565977600
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/assemblies/camera_display/wall_plate_fit.py": [
+        "current"
+      ]
+    },
+    "log": "unchanged-full-fit.log"
+  },
+  {
+    "scenario": "clearance-holder",
+    "target": "src/design/camera_display/display_holder.py",
+    "exitCode": 0,
+    "elapsedSeconds": 34.26652310700001,
+    "processTreePeakRssBytes": 758714368,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3565969408
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3530878976
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "afa386fe3bdafb5fb67415a2f7bbad437949d9118356700fcbb7c427fea877a6",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/design/camera_display/display_holder.py": [
+        "building",
+        "done"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "clearance-holder.log"
+  },
+  {
+    "scenario": "clearance-plate-current",
+    "target": "src/design/camera_display/wall_plate.py",
+    "exitCode": 0,
+    "elapsedSeconds": 11.037976067999978,
+    "processTreePeakRssBytes": 467914752,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3536588800
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3526623232
+    },
+    "outputHashesBefore": {
+      "holder": "afa386fe3bdafb5fb67415a2f7bbad437949d9118356700fcbb7c427fea877a6",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "afa386fe3bdafb5fb67415a2f7bbad437949d9118356700fcbb7c427fea877a6",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/design/camera_display/wall_plate.py": [
+        "current"
+      ]
+    },
+    "log": "clearance-plate-current.log"
+  },
+  {
+    "scenario": "clearance-holder-fit",
+    "target": "src/assemblies/camera_display/display_holder_fit.py",
+    "exitCode": 0,
+    "elapsedSeconds": 27.095142452999994,
+    "processTreePeakRssBytes": 604745728,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3526758400
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3527663616
+    },
+    "outputHashesBefore": {
+      "holder": "afa386fe3bdafb5fb67415a2f7bbad437949d9118356700fcbb7c427fea877a6",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "afa386fe3bdafb5fb67415a2f7bbad437949d9118356700fcbb7c427fea877a6",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "95ef24a73f25b7704f6f602d049e8f579b7cc14e7efc4e08286f6d0d87454aee",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/assemblies/camera_display/display_holder_fit.py": [
+        "building",
+        "done"
+      ],
+      "src/design/camera_display/display_holder.py": [
+        "current"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "clearance-holder-fit.log"
+  },
+  {
+    "scenario": "clearance-full-fit",
+    "target": "src/assemblies/camera_display/wall_plate_fit.py",
+    "exitCode": 0,
+    "elapsedSeconds": 28.362679225999955,
+    "processTreePeakRssBytes": 612634624,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3527467008
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3556196352
+    },
+    "outputHashesBefore": {
+      "holder": "afa386fe3bdafb5fb67415a2f7bbad437949d9118356700fcbb7c427fea877a6",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "95ef24a73f25b7704f6f602d049e8f579b7cc14e7efc4e08286f6d0d87454aee",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "afa386fe3bdafb5fb67415a2f7bbad437949d9118356700fcbb7c427fea877a6",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "95ef24a73f25b7704f6f602d049e8f579b7cc14e7efc4e08286f6d0d87454aee",
+      "full_fit": "92df6b0363566dd968838f830704ffdbeb4ea3f1b058a14cc5675b2c995e76d0"
+    },
+    "modelStates": {
+      "src/assemblies/camera_display/wall_plate_fit.py": [
+        "building",
+        "done"
+      ],
+      "src/design/camera_display/wall_plate.py": [
+        "current"
+      ],
+      "src/design/camera_display/display_holder.py": [
+        "current"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "clearance-full-fit.log"
+  },
+  {
+    "scenario": "restore-holder",
+    "target": "src/design/camera_display/display_holder.py",
+    "exitCode": 0,
+    "elapsedSeconds": 24.89853388199998,
+    "processTreePeakRssBytes": 713097216,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3556130816
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3543277568
+    },
+    "outputHashesBefore": {
+      "holder": "afa386fe3bdafb5fb67415a2f7bbad437949d9118356700fcbb7c427fea877a6",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "95ef24a73f25b7704f6f602d049e8f579b7cc14e7efc4e08286f6d0d87454aee",
+      "full_fit": "92df6b0363566dd968838f830704ffdbeb4ea3f1b058a14cc5675b2c995e76d0"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "95ef24a73f25b7704f6f602d049e8f579b7cc14e7efc4e08286f6d0d87454aee",
+      "full_fit": "92df6b0363566dd968838f830704ffdbeb4ea3f1b058a14cc5675b2c995e76d0"
+    },
+    "modelStates": {
+      "src/design/camera_display/display_holder.py": [
+        "building",
+        "done"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "restore-holder.log"
+  },
+  {
+    "scenario": "restore-holder-fit",
+    "target": "src/assemblies/camera_display/display_holder_fit.py",
+    "exitCode": 0,
+    "elapsedSeconds": 20.36776907000001,
+    "processTreePeakRssBytes": 604704768,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3543437312
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3497500672
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "95ef24a73f25b7704f6f602d049e8f579b7cc14e7efc4e08286f6d0d87454aee",
+      "full_fit": "92df6b0363566dd968838f830704ffdbeb4ea3f1b058a14cc5675b2c995e76d0"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "92df6b0363566dd968838f830704ffdbeb4ea3f1b058a14cc5675b2c995e76d0"
+    },
+    "modelStates": {
+      "src/assemblies/camera_display/display_holder_fit.py": [
+        "building",
+        "done"
+      ],
+      "src/design/camera_display/display_holder.py": [
+        "current"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "restore-holder-fit.log"
+  },
+  {
+    "scenario": "restore-full-fit",
+    "target": "src/assemblies/camera_display/wall_plate_fit.py",
+    "exitCode": 0,
+    "elapsedSeconds": 23.995836628000006,
+    "processTreePeakRssBytes": 612249600,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3497435136
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3558670336
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "92df6b0363566dd968838f830704ffdbeb4ea3f1b058a14cc5675b2c995e76d0"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/assemblies/camera_display/wall_plate_fit.py": [
+        "building",
+        "done"
+      ],
+      "src/design/camera_display/wall_plate.py": [
+        "current"
+      ],
+      "src/design/camera_display/display_holder.py": [
+        "current"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "restore-full-fit.log"
+  },
+  {
+    "scenario": "service-plate",
+    "target": "src/design/camera_display/wall_plate.py",
+    "exitCode": 0,
+    "elapsedSeconds": 15.526279144,
+    "processTreePeakRssBytes": 622161920,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3558596608
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3503263744
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "2617791ee3567385f0e47cfb8dbdd67b4344feecf70ba4055061b2970c33ca65",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/design/camera_display/wall_plate.py": [
+        "building",
+        "done"
+      ]
+    },
+    "log": "service-plate.log"
+  },
+  {
+    "scenario": "service-holder-current",
+    "target": "src/design/camera_display/display_holder.py",
+    "exitCode": 0,
+    "elapsedSeconds": 8.173480294,
+    "processTreePeakRssBytes": 468676608,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3503198208
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3530084352
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "2617791ee3567385f0e47cfb8dbdd67b4344feecf70ba4055061b2970c33ca65",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "2617791ee3567385f0e47cfb8dbdd67b4344feecf70ba4055061b2970c33ca65",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/design/camera_display/display_holder.py": [
+        "current"
+      ]
+    },
+    "log": "service-holder-current.log"
+  },
+  {
+    "scenario": "service-holder_fit-current",
+    "target": "src/assemblies/camera_display/display_holder_fit.py",
+    "exitCode": 0,
+    "elapsedSeconds": 8.872665956999981,
+    "processTreePeakRssBytes": 496254976,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3530084352
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3551686656
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "2617791ee3567385f0e47cfb8dbdd67b4344feecf70ba4055061b2970c33ca65",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "2617791ee3567385f0e47cfb8dbdd67b4344feecf70ba4055061b2970c33ca65",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/assemblies/camera_display/display_holder_fit.py": [
+        "current"
+      ]
+    },
+    "log": "service-holder_fit-current.log"
+  },
+  {
+    "scenario": "service-full-fit",
+    "target": "src/assemblies/camera_display/wall_plate_fit.py",
+    "exitCode": 0,
+    "elapsedSeconds": 23.78516138499998,
+    "processTreePeakRssBytes": 611856384,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3553705984
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3526053888
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "2617791ee3567385f0e47cfb8dbdd67b4344feecf70ba4055061b2970c33ca65",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "2617791ee3567385f0e47cfb8dbdd67b4344feecf70ba4055061b2970c33ca65",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "3b5a5f619ef6827cd3106fbdb2c7674af08d270d0f8fa6b0af205c0a70f73762"
+    },
+    "modelStates": {
+      "src/assemblies/camera_display/wall_plate_fit.py": [
+        "building",
+        "done"
+      ],
+      "src/design/camera_display/wall_plate.py": [
+        "current"
+      ],
+      "src/design/camera_display/display_holder.py": [
+        "current"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "service-full-fit.log"
+  },
+  {
+    "scenario": "restore-plate",
+    "target": "src/design/camera_display/wall_plate.py",
+    "exitCode": 0,
+    "elapsedSeconds": 14.91911491899998,
+    "processTreePeakRssBytes": 572559360,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3525922816
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3542323200
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "2617791ee3567385f0e47cfb8dbdd67b4344feecf70ba4055061b2970c33ca65",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "3b5a5f619ef6827cd3106fbdb2c7674af08d270d0f8fa6b0af205c0a70f73762"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "3b5a5f619ef6827cd3106fbdb2c7674af08d270d0f8fa6b0af205c0a70f73762"
+    },
+    "modelStates": {
+      "src/design/camera_display/wall_plate.py": [
+        "building",
+        "done"
+      ]
+    },
+    "log": "restore-plate.log"
+  },
+  {
+    "scenario": "restore-full-fit-plate",
+    "target": "src/assemblies/camera_display/wall_plate_fit.py",
+    "exitCode": 0,
+    "elapsedSeconds": 25.609162121999987,
+    "processTreePeakRssBytes": 612438016,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3542261760
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3527778304
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "3b5a5f619ef6827cd3106fbdb2c7674af08d270d0f8fa6b0af205c0a70f73762"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/assemblies/camera_display/wall_plate_fit.py": [
+        "building",
+        "done"
+      ],
+      "src/design/camera_display/wall_plate.py": [
+        "current"
+      ],
+      "src/design/camera_display/display_holder.py": [
+        "current"
+      ],
+      "src/references/active/jc4880p443c_i_w_y_community.py": [
+        "current"
+      ]
+    },
+    "log": "restore-full-fit-plate.log"
+  },
+  {
+    "scenario": "intentional-failure-holder",
+    "target": "src/design/camera_display/display_holder.py",
+    "exitCode": 1,
+    "elapsedSeconds": 9.779665472000033,
+    "processTreePeakRssBytes": 465899520,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3527823360
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3560517632
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/design/camera_display/display_holder.py": [
+        "building",
+        "failed"
+      ]
+    },
+    "log": "intentional-failure-holder.log"
+  },
+  {
+    "scenario": "recovery-holder-current",
+    "target": "src/design/camera_display/display_holder.py",
+    "exitCode": 0,
+    "elapsedSeconds": 7.872136476000037,
+    "processTreePeakRssBytes": 468484096,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3560853504
+    },
+    "guestAfter": {
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0,
+      "available": 3498094592
+    },
+    "outputHashesBefore": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "outputHashesAfter": {
+      "holder": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "plate": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+      "holder_fit": "c5141373decdf54e93c9c0956890b7d9576ae366167e87db3cc76893172959c1",
+      "full_fit": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7"
+    },
+    "modelStates": {
+      "src/design/camera_display/display_holder.py": [
+        "current"
+      ]
+    },
+    "log": "recovery-holder-current.log"
+  }
+]

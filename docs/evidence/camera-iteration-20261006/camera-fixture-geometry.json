@@ -1,0 +1,66 @@
+{
+  "baseline-holder": {
+    "sha256": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+    "valid": true,
+    "solidCount": 1,
+    "volumeMm3": 12148.03118766088,
+    "boundsMinMm": [
+      -35.2,
+      -59.075,
+      -1.0086376178719547e-12
+    ],
+    "boundsMaxMm": [
+      35.199999991748,
+      59.075,
+      13.000000000000004
+    ]
+  },
+  "clearance-holder": {
+    "sha256": "afa386fe3bdafb5fb67415a2f7bbad437949d9118356700fcbb7c427fea877a6",
+    "valid": true,
+    "solidCount": 1,
+    "volumeMm3": 12013.056767575901,
+    "boundsMinMm": [
+      -35.2,
+      -59.075,
+      -1.0086376178719547e-12
+    ],
+    "boundsMaxMm": [
+      35.199999991748,
+      59.075,
+      13.000000000000004
+    ]
+  },
+  "baseline-plate": {
+    "sha256": "ca26bb19ae7c8af31c329e224fd33f1b90cbf28d833caa50e7fd782d28fc09b3",
+    "valid": true,
+    "solidCount": 1,
+    "volumeMm3": 19649.313690310704,
+    "boundsMinMm": [
+      -35.2,
+      -59.075,
+      -4.5
+    ],
+    "boundsMaxMm": [
+      35.200000000001,
+      59.075,
+      3.000000000002473
+    ]
+  },
+  "service-plate": {
+    "sha256": "2617791ee3567385f0e47cfb8dbdd67b4344feecf70ba4055061b2970c33ca65",
+    "valid": true,
+    "solidCount": 1,
+    "volumeMm3": 19601.313690310704,
+    "boundsMinMm": [
+      -35.2,
+      -59.075,
+      -4.5
+    ],
+    "boundsMaxMm": [
+      35.200000000001,
+      59.075,
+      3.000000000002473
+    ]
+  }
+}

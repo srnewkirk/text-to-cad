@@ -1,0 +1,142 @@
+{
+  "baseline-holder-rear-opening": {
+    "document": "baseline/display_holder.step",
+    "measuredWidthMm": 65.9,
+    "measuredHeightMm": null,
+    "supportingInnerFaceBounds": {
+      "-1": [
+        {
+          "minMm": [
+            -32.95000000000001,
+            -53.5750008,
+            0.0
+          ],
+          "maxMm": [
+            -32.949999999999996,
+            53.5750008,
+            13.000000000000004
+          ]
+        }
+      ],
+      "1": [
+        {
+          "minMm": [
+            32.949999999999996,
+            -53.5750008,
+            0.0
+          ],
+          "maxMm": [
+            32.95,
+            53.5750008,
+            13.0
+          ]
+        }
+      ]
+    }
+  },
+  "clearance-holder-rear-opening": {
+    "document": "changed/clearance-holder.step",
+    "measuredWidthMm": 66.0,
+    "measuredHeightMm": null,
+    "supportingInnerFaceBounds": {
+      "-1": [
+        {
+          "minMm": [
+            -33.00000000000001,
+            -53.5750008,
+            0.0
+          ],
+          "maxMm": [
+            -32.99999999999999,
+            53.5750008,
+            13.000000000000004
+          ]
+        }
+      ],
+      "1": [
+        {
+          "minMm": [
+            33.0,
+            -53.5750008,
+            0.0
+          ],
+          "maxMm": [
+            33.0,
+            53.5750008,
+            13.0
+          ]
+        }
+      ]
+    }
+  },
+  "baseline-plate-service-opening": {
+    "document": "baseline/wall_plate.step",
+    "measuredWidthMm": 14.0,
+    "measuredHeightMm": 32.0,
+    "supportingInnerFaceBounds": {
+      "-1": [
+        {
+          "minMm": [
+            -7.0,
+            -16.0,
+            -1.5
+          ],
+          "maxMm": [
+            -7.0,
+            16.0,
+            0.0
+          ]
+        }
+      ],
+      "1": [
+        {
+          "minMm": [
+            7.0,
+            -16.0,
+            -1.5
+          ],
+          "maxMm": [
+            7.0,
+            16.0,
+            0.0
+          ]
+        }
+      ]
+    }
+  },
+  "service-plate-opening": {
+    "document": "changed/service-plate.step",
+    "measuredWidthMm": 15.0,
+    "measuredHeightMm": 32.0,
+    "supportingInnerFaceBounds": {
+      "-1": [
+        {
+          "minMm": [
+            -7.5,
+            -16.0,
+            -1.5
+          ],
+          "maxMm": [
+            -7.5,
+            16.0,
+            0.0
+          ]
+        }
+      ],
+      "1": [
+        {
+          "minMm": [
+            7.5,
+            -16.0,
+            -1.5
+          ],
+          "maxMm": [
+            7.5,
+            16.0,
+            0.0
+          ]
+        }
+      ]
+    }
+  }
+}

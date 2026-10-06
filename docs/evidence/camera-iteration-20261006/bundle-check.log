@@ -1,0 +1,21 @@
+Checking derived version metadata...
+Derived version metadata is synced from VERSION: 0.5.5
+Checking the packaged runtime...
+
+  tmp/cadgen-runtime-check/node/dxf-mesh.mjs  299.9kb
+
+⚡ Done in 252ms
+
+  tmp/cadgen-runtime-check/node/mesh-export.mjs  291.7kb
+
+⚡ Done in 242ms
+Bundled tmp/cadgen-runtime-check/node
+
+  tmp/cadgen-runtime-check/browser/snapshot-render.js  1.2mb ⚠️
+
+⚡ Done in 389ms
+Bundled tmp/cadgen-runtime-check/browser
+packages/cadgen/src/cadgen/_runtime/node is up to date.
+packages/cadgen/src/cadgen/_runtime/browser is up to date.
+cadgen packaged runtime is up to date.
+All bundle outputs are up to date.

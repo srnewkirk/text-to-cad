@@ -30,8 +30,13 @@ clone has no `STEP/` at all; regenerate a project by running its scripts:
 
 ```bash
 cd models/<project>
-ls src/*.py | xargs -n1 -P4 python     # unchanged models no-op
+python src/<affected-model>.py       # builds changed dependencies; current ones reuse results
 ```
+
+Run the affected part or assembly first. Build additional targets only when
+the change or integration check requires them; avoid a parallel directory sweep
+on a resource-constrained machine. A feature inside one model is not a separate
+cached build unit.
 
 Each project's `src/README.md` is its model catalog — which script builds which
 artifact — so start there rather than reading every file.

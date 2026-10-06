@@ -1,13 +1,17 @@
 """The warm worker pool: a worker per model, an extra when it is busy, spares in reserve.
 
-One rule decides everything here: **worker admission never waits on a build.** A request
+One rule decides routing here: **a busy worker is never shared.** A request
 for a model whose worker is idle takes that worker. A request for a model whose
 worker is busy gets an *extra* — a spare bound to the same model for the length
 of one job — and runs now. A request for a model with no worker binds a spare. A
 request with no spare left evicts an idle worker or reserves a spawn, subject
 to a daemon-wide resident limit. Busy workers (including waiting parents),
 starting workers and retiring workers all count. At capacity admission fails
-promptly: queuing parents behind their children would deadlock. Outcomes between
+promptly for direct callers. The server opts into bounded, cancellable waiting
+while broker slots, imports or owned teardown may release capacity. Slot-less
+parents do not establish productive work; a short dispatch-transition grace
+precedes refusal, and all admission waiting has a total startup-time bound.
+Outcomes between
 concurrent builds of one model are still decided by the publish rule.
 
 Spares: ``CADGEN_DAEMON_SPARES`` (default 2) workers that have finished importing
@@ -35,15 +39,15 @@ import sys
 import threading
 import time
 
+from cadgen.daemon import memory
+
 DEFAULT_SPARES = 2
 DEFAULT_RECYCLE_AFTER = 1000
 DEFAULT_IDLE_UNBIND_SECONDS = 600.0
 DEFAULT_MAX_WORKERS = 4
-# The incident's largest workers used 1.3–1.7 GiB of private memory. This is
-# admission headroom, not a promise to constrain a model's later allocations.
-SPAWN_MEMORY_BYTES = 2 * 1024**3
-SPAWN_MEMORY_RESERVE_BYTES = 2 * 1024**3
 SPAWN_TIMEOUT_SECONDS = 120.0
+ADMISSION_TRANSITION_GRACE_SECONDS = 2.0
+ADMISSION_POLL_SECONDS = 0.1
 _USE_SEQUENCE = itertools.count()
 
 
@@ -69,6 +73,10 @@ def worker_limit() -> int:
 
 class WorkerCapacity(RuntimeError):
     """Admission refused before launching another native process."""
+
+
+class AdmissionCancelled(WorkerCapacity):
+    """The requesting client disappeared before admission."""
 
 
 def recycle_after() -> int:
@@ -178,12 +186,18 @@ class Worker:
         if stream is None:
             self._frames.put(None)
             return
-        for line in stream:
-            try:
-                self._frames.put(json.loads(line))
-            except ValueError:
-                self._frames.put({"stream": "stderr", "data": line})
-        self._frames.put(None)
+        try:
+            for line in stream:
+                try:
+                    self._frames.put(json.loads(line))
+                except ValueError:
+                    self._frames.put({"stream": "stderr", "data": line})
+        finally:
+            # This reader owns stdout. Cross-thread close can block forever on
+            # its buffered IO lock if a descendant still holds the pipe open.
+            with contextlib.suppress(OSError, ValueError):
+                stream.close()
+            self._frames.put(None)
 
     def _read_frame(self, timeout: float | None = None) -> dict | None | object:
         """The next frame; None when the pipe closed; ``_TIMED_OUT`` when ``timeout`` elapsed.
@@ -255,11 +269,12 @@ class Worker:
                         proc.wait(timeout=2)
                     except subprocess.TimeoutExpired:
                         proc.kill()
-                        proc.wait(timeout=2)
+                        with contextlib.suppress(subprocess.TimeoutExpired):
+                            proc.wait(timeout=2)
         except OSError:
             pass
         finally:
-            for stream in (proc.stdin, proc.stdout):
+            for stream in (proc.stdin,):
                 if stream is not None:
                     with contextlib.suppress(OSError):
                         stream.close()
@@ -268,7 +283,8 @@ class Worker:
 class Pool:
     """See the module docstring."""
 
-    def __init__(self, clock=time.monotonic) -> None:
+    def __init__(self, clock=time.monotonic, *, headroom_reader=None,
+                 baseline_reader=None, memory_policy=None) -> None:
         self._cv = threading.Condition()
         self._clock = clock
         self._workers: list[Worker] = []
@@ -278,6 +294,58 @@ class Pool:
         self._limit = worker_limit()
         self._stats = {"jobsServed": 0, "imports": 0, "concurrent": 0, "crashes": 0, "recycles": 0, "unbinds": 0, "rejected": 0, "evictions": 0}
         self._closed = False
+        self._demand_waiters = 0
+        self._headroom_reader = headroom_reader or memory.observe_headroom
+        self._baseline_reader = baseline_reader or memory.fresh_worker_bytes
+        self._memory_policy = memory_policy or memory.MemoryPolicy.for_platform()
+        self._startup_bytes = self._memory_policy.startup_bytes
+        self._memory_epoch = 0
+
+    def _observe_headroom(self):
+        # OS reads never hold the admission lock. Only never-used idle workers
+        # can calibrate interpreter/import cost; retained geometry is not baseline.
+        with self._cv:
+            fresh = [w for w in self._workers if not w.busy and not w.jobs_served]
+            epoch = self._memory_epoch
+        try:
+            observation = self._headroom_reader()
+        except (OSError, ValueError) as exc:
+            observation = memory.Headroom(None, "memory reader",
+                                         f"memory headroom observation unavailable: {exc}")
+        measured = []
+        for worker in fresh:
+            try:
+                amount = self._baseline_reader(worker.pid)
+            except (OSError, ValueError):
+                amount = None
+            if amount is not None and amount > 0:
+                measured.append((worker, amount))
+        with self._cv:
+            for worker, amount in measured:
+                if worker in self._workers and not worker.busy and not worker.jobs_served:
+                    self._startup_bytes = max(self._startup_bytes, amount)
+        return observation, epoch
+
+    def _check_headroom_locked(self, observation, *, spawning, job):
+        if not observation.enforced:
+            return
+        if observation.available_bytes is None:
+            raise WorkerCapacity(observation.error or "memory headroom observation unavailable")
+        # Resident consumption is ALREADY excluded from available headroom.
+        # Starts not yet represented there require atomic reservations instead.
+        demand_pending = self._starting - self._spares_pending
+        required = (self._memory_policy.reserve_bytes
+                    + self._starting * self._startup_bytes
+                    + demand_pending * self._memory_policy.spawn_job_increment_bytes
+                    + (self._startup_bytes if spawning else 0)
+                    + ((self._memory_policy.spawn_job_increment_bytes if spawning
+                        else self._memory_policy.job_bytes) if job else 0))
+        if observation.available_bytes < required:
+            raise WorkerCapacity(
+                f"insufficient memory headroom ({observation.source}): "
+                f"{observation.available_bytes // memory.MIB} MiB available, "
+                f"{required // memory.MIB} MiB estimated required; "
+                "reservations do not constrain subsequent native allocations")
 
     # --- spares -------------------------------------------------------------------
 
@@ -294,7 +362,7 @@ class Pool:
     def _spares_locked(self) -> list[Worker]:
         return [w for w in self._workers if not w.model and not w.busy]
 
-    def _reserve_locked(self) -> None:
+    def _reserve_locked(self, observation, *, spare=False) -> None:
         if self._closed:
             raise WorkerCapacity("worker pool is closed")
         if len(self._workers) + self._starting + self._retiring >= self._limit:
@@ -303,30 +371,33 @@ class Pool:
                 "build dependencies separately, then retry the parent; "
                 "CADGEN_JOBS does not bound resident workers"
             )
-        from cadgen._internal.runtime_limits import _windows_available_memory
-
-        available = _windows_available_memory()
-        required = SPAWN_MEMORY_RESERVE_BYTES + (self._starting + 1) * SPAWN_MEMORY_BYTES
-        if available is not None and available < required:
-            raise WorkerCapacity("insufficient Windows RAM/commit headroom to start a CAD worker; retry after memory is available")
+        self._check_headroom_locked(observation, spawning=True, job=not spare)
         self._starting += 1
+        self._memory_epoch += 1
+        if spare:
+            self._spares_pending += 1
 
     def ensure_spares(self) -> None:
         """Top the spare set up to ``spare_count()`` in the background."""
         with self._cv:
-            if self._closed:
+            if self._closed or self._demand_waiters or spare_count() <= 0:
+                return
+        observation, epoch = self._observe_headroom()
+        with self._cv:
+            if self._closed or self._demand_waiters:
+                return
+            if epoch != self._memory_epoch or time.monotonic() - observation.observed_at > memory.OBSERVATION_MAX_AGE_SECONDS:
                 return
             want = 0
             desired = spare_count() - len(self._spares_locked()) - self._spares_pending
             for _ in range(max(0, desired)):
                 try:
-                    self._reserve_locked()
+                    self._reserve_locked(observation, spare=True)
                 except WorkerCapacity:
                     break
                 want += 1
             if not want:
                 return
-            self._spares_pending += want
 
         def fill(count: int) -> None:
             for _ in range(count):
@@ -337,6 +408,7 @@ class Pool:
                 with self._cv:
                     self._spares_pending -= 1
                     self._starting -= 1
+                    self._memory_epoch += 1
                     if worker is not None:
                         if self._closed:
                             worker.kill()
@@ -352,98 +424,147 @@ class Pool:
 
     # --- acquire / release -------------------------------------------------------
 
-    def acquire(self, model: str = "") -> Worker:
-        """A worker for ``model`` or a capacity error; never wait on active builds.
+    def acquire(self, model: str = "", *, cancelled=None, on_wait=None,
+                productive=None) -> Worker:
+        """Acquire a worker; server callers may opt into bounded contention waiting.
 
-        Pending spare imports may be awaited up to the spawn timeout.
-
-        ``model`` is the script path (the routing key); "" means a request with
-        no model subject, which borrows a spare without binding it.
+        ``productive`` observes active broker slots, not busy resident parents.
+        The no-progress grace tolerates dispatch transitions, not dependency graphs.
+        Direct callers retain fail-fast capacity refusal and bounded spare waiting.
         """
-        with self._cv:
-            if self._closed:
-                raise WorkerCapacity("worker pool is closed")
-            self._reap_dead_locked()
-            # A pending spare holds capacity but is not running a model. Wait
-            # for its bounded import rather than reject demand or queue behind
-            # active parents. Recheck under the lock because other callers can
-            # claim the spare first, and failed imports release reservations.
-            deadline = time.monotonic() + SPAWN_TIMEOUT_SECONDS
-            while self._spares_pending and self._take_spare_locked() is None:
-                if any(w.model == model and model and not w.busy and not w.extra for w in self._workers):
-                    break
-                remaining = deadline - time.monotonic()
-                if remaining <= 0:
-                    self._stats["rejected"] += 1
-                    raise WorkerCapacity("spare worker initialization timed out; retry after imports finish")
-                self._cv.wait(timeout=remaining)
-                if self._closed:
-                    raise WorkerCapacity("worker pool closed while waiting for a spare")
-                self._reap_dead_locked()
-            if model:
-                bound = [w for w in self._workers if w.model == model and not w.extra]
-                idle = [w for w in bound if not w.busy]
-                if idle:
-                    worker = idle[0]
-                    worker.busy = True
-                    return self._used_locked(worker)
-                spare = self._take_spare_locked()
-                if spare is not None:
-                    spare.busy = True
-            else:
-                spare = self._take_spare_locked()
-                if spare is not None:
-                    spare.busy = True
-                bound = []
+        deadline = time.monotonic() + SPAWN_TIMEOUT_SECONDS
+        stalled_since = None
+        reported = None
+        waiting = False
+        spare = None
+        try:
+            with self._cv:
+                while True:
+                    if cancelled is not None and cancelled():
+                        raise AdmissionCancelled("client disconnected while waiting for worker admission")
+                    if self._closed:
+                        raise WorkerCapacity("worker pool is closed")
+                    self._cv.release()
+                    try:
+                        observation, epoch = self._observe_headroom()
+                    finally:
+                        self._cv.acquire()
+                    if cancelled is not None and cancelled():
+                        raise AdmissionCancelled("client disconnected while observing memory headroom")
+                    if self._closed:
+                        raise WorkerCapacity("worker pool is closed")
+                    if epoch != self._memory_epoch or time.monotonic() - observation.observed_at > memory.OBSERVATION_MAX_AGE_SECONDS:
+                        if time.monotonic() >= deadline:
+                            raise WorkerCapacity("memory headroom observation could not stabilize before admission timeout")
+                        continue
+                    if observation.enforced and observation.available_bytes is None:
+                        self._stats["rejected"] += 1
+                        raise WorkerCapacity(observation.error or "memory headroom observation unavailable")
+                    self._reap_dead_locked()
+                    bound = [w for w in self._workers if model and w.model == model and not w.extra]
+                    idle_bound = [w for w in bound if not w.busy]
+                    spare = idle_bound[0] if idle_bound else self._take_spare_locked()
+                    try:
+                        if spare is not None:
+                            self._check_headroom_locked(observation, spawning=False, job=True)
+                            spare.busy = True
+                            break
+                        self._reserve_locked(observation)
+                        break
+                    except WorkerCapacity as exc:
+                        reason = str(exc)
+                    idle = [w for w in self._workers if not w.busy]
+                    if idle:
+                        victim = min(idle, key=lambda w: w.last_used)
+                        if productive is None:
+                            # Preserve direct callers' synchronous eviction contract.
+                            self._retire_locked(victim)
+                            self._stop_retired_worker(victim)
+                        else:
+                            self._drop_locked(victim)
+                        self._stats["evictions"] += 1
+                        continue
+                    now = time.monotonic()
+                    if now >= deadline:
+                        self._stats["rejected"] += 1
+                        raise WorkerCapacity(("spare worker initialization timed out: " if self._spares_pending
+                                              else "worker admission timed out: ") + reason)
+                    if productive is None and not self._spares_pending:
+                        self._stats["rejected"] += 1
+                        raise WorkerCapacity(reason)
+                    progress = self._starting or self._retiring or (productive is not None and productive())
+                    if progress:
+                        stalled_since = None
+                    elif stalled_since is None:
+                        stalled_since = now
+                    elif now - stalled_since >= ADMISSION_TRANSITION_GRACE_SECONDS:
+                        self._stats["rejected"] += 1
+                        raise WorkerCapacity(reason + "; no active work can release admission capacity")
+                    if not waiting:
+                        waiting = True
+                        self._demand_waiters += 1
+                    report_key = "memory headroom" if reason.startswith("insufficient memory headroom") else reason
+                    if on_wait is not None and reported != report_key:
+                        reported = report_key
+                        # Reporting may perform socket I/O. Release the global
+                        # admission lock and retry routing/cancellation afterward.
+                        self._cv.release()
+                        try:
+                            on_wait(reason)
+                        finally:
+                            self._cv.acquire()
+                        continue
+                    self._cv.wait(timeout=min(ADMISSION_POLL_SECONDS, deadline - now))
+                if waiting:
+                    self._demand_waiters -= 1
+                    waiting = False
             if spare is None:
-                idle = [w for w in self._workers if not w.busy]
-                if idle and len(self._workers) + self._starting + self._retiring >= self._limit:
-                    # Do not rebind a model worker: its RAM memo belongs to its
-                    # previous model. Reap before reserving its replacement.
-                    victim = min(idle, key=lambda w: w.last_used)
-                    self._retire_locked(victim)
-                    self._stop_retired_worker(victim)
-                    self._stats["evictions"] += 1
+                with self._cv:
+                    if self._closed or (cancelled is not None and cancelled()):
+                        self._starting -= 1
+                        self._memory_epoch += 1
+                        self._cv.notify_all()
+                        if self._closed:
+                            raise WorkerCapacity("worker pool closed before worker startup")
+                        raise AdmissionCancelled("client disconnected before worker startup")
                 try:
-                    self._reserve_locked()
-                except WorkerCapacity:
-                    self._stats["rejected"] += 1
+                    spare = self._spawn()
+                except BaseException:
+                    with self._cv:
+                        self._starting -= 1
+                        self._memory_epoch += 1
+                        self._cv.notify_all()
                     raise
-        if spare is None:
-            try:
-                spare = self._spawn()
-            except BaseException:
                 with self._cv:
                     self._starting -= 1
+                    self._memory_epoch += 1
+                    spare.busy = True
+                    self._workers.append(spare)
                     self._cv.notify_all()
-                raise
             with self._cv:
-                self._starting -= 1
-                if self._closed:
-                    spare.kill()
-                    raise WorkerCapacity("worker pool closed while starting a worker")
-                # Publish before releasing the lock: another admission must
-                # count this worker even before it is assigned below.
-                spare.busy = True
-                self._workers.append(spare)
-        with self._cv:
-            if self._closed:
-                spare.kill()
-                raise WorkerCapacity("worker pool closed during admission")
-            spare.busy = True
-            if model:
-                spare.model = model
-                # An extra when a primary already exists; a primary otherwise.
-                spare.extra = bool(bound)
-                if spare.extra:
-                    self._stats["concurrent"] += 1
-            else:
-                spare.extra = True  # borrowed; returns to the spare set on release
-            if spare not in self._workers:
-                self._workers.append(spare)
-            self._used_locked(spare)
-        self.ensure_spares()
-        return spare
+                if self._closed or (cancelled is not None and cancelled()):
+                    spare.busy = False
+                    self._drop_locked(spare)
+                    if self._closed:
+                        raise WorkerCapacity("worker pool closed during admission")
+                    raise AdmissionCancelled("client disconnected during worker admission")
+                if model:
+                    was_bound = spare in bound
+                    spare.model = model
+                    spare.extra = not was_bound and any(
+                        w is not spare and w.model == model and not w.extra for w in self._workers)
+                    if spare.extra:
+                        self._stats["concurrent"] += 1
+                else:
+                    spare.extra = True
+                self._used_locked(spare)
+            self.ensure_spares()
+            return spare
+        finally:
+            if waiting:
+                with self._cv:
+                    self._demand_waiters -= 1
+                    self._cv.notify_all()
 
     def _used_locked(self, worker: Worker) -> Worker:
         worker.last_used = self._clock()
@@ -451,10 +572,11 @@ class Pool:
         return worker
 
     def unbind_idle(self) -> None:
-        """A bound worker idle for ``idle_unbind_seconds()`` returns to the spare set
-        (spares beyond K exit). Its model's next build rebinds a spare -- no import
-        repaid, a cold RAM op-memo tier. Purely RAM: idle workers hold no slot and
-        block nothing, so this is the only reason to touch them at all."""
+        """Return aged bound workers to spares, retiring those beyond K.
+
+        Admission also reclaims owned idle workers under resident/headroom pressure.
+        Persistent derived artifacts are untouched by either lifecycle operation.
+        """
         limit = idle_unbind_seconds()
         with self._cv:
             now = self._clock()

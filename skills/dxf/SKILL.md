@@ -211,8 +211,9 @@ meshes it on demand. The drawing's gate makes a rebuild cheap: an unchanged
 source whose `.dxf` still verifies and whose part children are unchanged is a
 no-op, and `--force` rebuilds anyway. The bytes are a function of the
 drawing's GEOMETRY, so a cold run and a warm daemon worker write the same
-file. Builds never wait on or cancel one another; a drawing that calls parts
-builds them in parallel like any parent.
+file. Concurrent builds do not cancel one another; a drawing that calls parts
+builds them in parallel like any parent. Daemon worker admission can wait
+cancellably or refuse under resource contention; avoid broad build fan-out.
 
 An imported `.dxf` needs nothing at all — hand it straight to snapshot or the
 Viewer.
@@ -275,6 +276,12 @@ directly (it arrives with build123d), and `validate_dxf_file` for the drawing ch
 review geometry visually with `$cad-viewer`.
 
 ## Workflow
+
+For source edits, choose a coherent drawing change: keep coupled outlines,
+holes, slots, and dimensions together, then build and inspect the affected
+drawing before adding unrelated work. Reuse current part geometry and valid
+outputs; a changed shared interface also needs its affected part/drawing checks.
+Imported-document inspection does not require a source-authoring loop.
 
 1. Convert the request into a short brief: outline dimensions, holes and slots, layers, units, output path, and validation targets.
 2. Pick the workflow: drafted from scratch, flat pattern of a generated model (create and validate the 3D geometry with `$cad` first), or flat pattern of an imported STEP.

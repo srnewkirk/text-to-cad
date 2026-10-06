@@ -43,6 +43,13 @@ After completing URDF work that creates or modifies a `.urdf`, you must ALWAYS h
 
 ## Workflow
 
+For edits, group changes by their frame, joint, or physical-link intent. Complete
+the affected edit/validate/review loop before accumulating unrelated changes.
+Reuse valid mesh assets in the correct link frames; regenerate only changed or
+missing assets with their owning workflow. Local checks support iteration but
+do not replace the required validation of every modified URDF or final joint
+review. Read-only inspection does not require reauthoring the robot.
+
 1. Identify the target `.urdf` file and its consumers: RViz, robot_state_publisher, Gazebo/Ignition, MoveIt, a real robot driver, or another simulator.
 2. Read or create the design ledger before editing frames, origins, axes, mesh scale, limits, or inertials. Keep the ledger as a comment block in the `.urdf` itself.
 3. Prepare mesh assets first when links reference meshes: one mesh per link, exported in that link's frame by the owning CAD/mesh workflow. See `references/meshes.md`.

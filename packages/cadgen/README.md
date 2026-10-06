@@ -24,6 +24,10 @@ submits a document's compile as a job to the same build pool every door uses.
 
 ## The design laws
 
+The daemon's soft headroom estimates, platform observation behavior, and finite
+admission waiting are described in [`MEMORY.md`](MEMORY.md). These complement
+the resident-worker cap and cannot constrain later native allocations.
+
 These are LAWS, not conventions: a change that violates them is wrong even
 when it works. Each carries a pressure-test to apply before writing code.
 

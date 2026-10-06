@@ -1,0 +1,7 @@
+project/
+store/
+baseline/
+changed/
+daemon-store-*/
+daemon-state/
+review/

@@ -117,10 +117,18 @@ Either flag overrides what the declaration and the model set, for that run only.
 
 ## Workflow
 
-1. Validate the model per the standard workflow (build, inspect, snapshot).
-2. Declare the exports the model should always have; run the model script.
-3. For anything ad hoc, run the format door for each requested format.
-4. Report the exported files.
+1. For a geometry change, build affected model targets, inspect the changed
+   geometry, and review the required primary snapshot. Reuse valid geometry
+   for export-only requests; do not repeat geometry validation or snapshots
+   without a changed artifact or a specific review question.
+   If the target lacks applicable geometry evidence, obtain the required
+   checks before using it as a validated export input.
+2. Declare outputs the model should always have and run the model script.
+   Declared outputs remain part of the model's freshness contract and cannot
+   be silently omitted; current valid exports are reused by the runtime.
+3. For ad hoc requests, run the format door only for each requested format
+   and target.
+4. Report the exported files and the geometry evidence that supports them.
 
 Example — the model declares its STL, and a one-off coarse GLB is requested beside it:
 
