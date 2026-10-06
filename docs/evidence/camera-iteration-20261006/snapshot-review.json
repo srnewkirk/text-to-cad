@@ -1,0 +1,95 @@
+{
+  "date": "2026-10-06",
+  "result": "passed",
+  "elapsedSeconds": 14.734537,
+  "source": "source Python and unchanged committed snapshot runtime",
+  "localImagesCommitted": false,
+  "scope": "Changed holder, changed plate, restored full fit; visual review only",
+  "initialFailureLog": "camera-fixture-snapshots.log",
+  "isolatedPythonDependencies": [
+    "playwright==1.63.0",
+    "greenlet==3.5.6",
+    "pyee==13.0.0",
+    "typing_extensions==4.16.0"
+  ],
+  "isolatedExtractedLibraries": [
+    "libnspr4=2:4.38.2-1ubuntu1",
+    "libnss3=2:3.120-1ubuntu2.1",
+    "libasound2t64=1.2.15.3-1ubuntu1.1"
+  ],
+  "osPackagesInstalled": false,
+  "jobs": [
+    {
+      "input": "models/camera-iteration-validation/changed/clearance-holder.step",
+      "inputSha256": "afa386fe3bdafb5fb67415a2f7bbad437949d9118356700fcbb7c427fea877a6",
+      "outputs": [
+        {
+          "path": "models/camera-iteration-validation/review/clearance-holder-0.png",
+          "sha256": "81dba7eeeb8f1e57aa521e178cb2d9105d573a16264d960316d25967a8f0883c",
+          "bytes": 306392,
+          "camera": "iso",
+          "visuallyReviewed": true
+        },
+        {
+          "path": "models/camera-iteration-validation/review/clearance-holder-1.png",
+          "sha256": "1165e056001e6828ab93089d102f383bac5a2f3f232b9b6a77d9838f4284541b",
+          "bytes": 329877,
+          "camera": {
+            "direction": [
+              -1,
+              1,
+              -0.8
+            ]
+          },
+          "visuallyReviewed": true
+        }
+      ]
+    },
+    {
+      "input": "models/camera-iteration-validation/changed/service-plate.step",
+      "inputSha256": "2617791ee3567385f0e47cfb8dbdd67b4344feecf70ba4055061b2970c33ca65",
+      "outputs": [
+        {
+          "path": "models/camera-iteration-validation/review/service-plate-0.png",
+          "sha256": "1bc9bfc53a6ab80fc2cf3c0f0d6de379ae75b1a0b10fe9c67c5f601630e47846",
+          "bytes": 67769,
+          "camera": "top",
+          "visuallyReviewed": true
+        },
+        {
+          "path": "models/camera-iteration-validation/review/service-plate-1.png",
+          "sha256": "9a16bb421528b73f94980c24a5d0e1e6cfccace933774a2fe464e1296bf70372",
+          "bytes": 375680,
+          "camera": "iso",
+          "visuallyReviewed": true
+        }
+      ]
+    },
+    {
+      "input": "models/camera-iteration-validation/baseline/wall_plate_fit.step",
+      "inputSha256": "f650ce576c71df566cfa2ca597bba5eef14fb070e9f408b11d663b3e1e6cdff7",
+      "outputs": [
+        {
+          "path": "models/camera-iteration-validation/review/full-fit-0.png",
+          "sha256": "7b22e47ac351fc35bb3a580af7f6a239a5f5ed83694f715277e44fe362511f12",
+          "bytes": 367997,
+          "camera": "iso",
+          "visuallyReviewed": true
+        },
+        {
+          "path": "models/camera-iteration-validation/review/full-fit-1.png",
+          "sha256": "bba14113189ad54274e6a7d938c2bcefb6e96c41884d8188a308ffa122f20239",
+          "bytes": 401937,
+          "camera": {
+            "direction": [
+              -1,
+              1,
+              -0.8
+            ]
+          },
+          "visuallyReviewed": true
+        }
+      ]
+    }
+  ]
+}

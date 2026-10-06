@@ -1,0 +1,32 @@
+Checking derived version metadata...
+Derived version metadata is synced from VERSION: 0.5.5
+Checking the packaged runtime...
+
+added 4 packages in 17s
+
+  tmp/cadgen-runtime-check/node/dxf-mesh.mjs  299.9kb
+
+⚡ Done in 225ms
+
+  tmp/cadgen-runtime-check/node/mesh-export.mjs  291.7kb
+
+⚡ Done in 219ms
+Bundled tmp/cadgen-runtime-check/node
+
+added 4 packages in 17s
+
+  tmp/cadgen-runtime-check/browser/snapshot-render.js  1.2mb ⚠️
+
+⚡ Done in 404ms
+Bundled tmp/cadgen-runtime-check/browser
+Files /mnt/c/Users/srnew/source/repos/text-to-cad/tmp/cadgen-runtime-check/node/THIRD_PARTY_LICENSES.txt and /mnt/c/Users/srnew/source/repos/text-to-cad/packages/cadgen/src/cadgen/_runtime/node/THIRD_PARTY_LICENSES.txt differ
+Files /mnt/c/Users/srnew/source/repos/text-to-cad/tmp/cadgen-runtime-check/node/dxf-mesh.mjs and /mnt/c/Users/srnew/source/repos/text-to-cad/packages/cadgen/src/cadgen/_runtime/node/dxf-mesh.mjs differ
+Files /mnt/c/Users/srnew/source/repos/text-to-cad/tmp/cadgen-runtime-check/node/mesh-export.mjs and /mnt/c/Users/srnew/source/repos/text-to-cad/packages/cadgen/src/cadgen/_runtime/node/mesh-export.mjs differ
+Files /mnt/c/Users/srnew/source/repos/text-to-cad/tmp/cadgen-runtime-check/node/package.json and /mnt/c/Users/srnew/source/repos/text-to-cad/packages/cadgen/src/cadgen/_runtime/node/package.json differ
+packages/cadgen/src/cadgen/_runtime/node is stale.
+Files /mnt/c/Users/srnew/source/repos/text-to-cad/tmp/cadgen-runtime-check/browser/THIRD_PARTY_LICENSES.txt and /mnt/c/Users/srnew/source/repos/text-to-cad/packages/cadgen/src/cadgen/_runtime/browser/THIRD_PARTY_LICENSES.txt differ
+Files /mnt/c/Users/srnew/source/repos/text-to-cad/tmp/cadgen-runtime-check/browser/render.html and /mnt/c/Users/srnew/source/repos/text-to-cad/packages/cadgen/src/cadgen/_runtime/browser/render.html differ
+Files /mnt/c/Users/srnew/source/repos/text-to-cad/tmp/cadgen-runtime-check/browser/snapshot-render.js and /mnt/c/Users/srnew/source/repos/text-to-cad/packages/cadgen/src/cadgen/_runtime/browser/snapshot-render.js differ
+packages/cadgen/src/cadgen/_runtime/browser is stale.
+
+Run scripts/bundle/bundle.sh and commit the result.

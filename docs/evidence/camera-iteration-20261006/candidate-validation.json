@@ -1,0 +1,73 @@
+{
+  "sourceBase": "3ff9a8428510dcadae4d4747db31bf2d79560f22",
+  "branch": "codex/camera-iteration-contract",
+  "workingTreeByteSha256": {
+    "packages/cadgen/src/cadgen/daemon/pool.py": "0c951eec994adc2b4606fa8e2b420f7aac4d171b463666056d010f25aede38d5",
+    "packages/cadgen/src/cadgen/daemon/server.py": "604e8e0486cdc8bc248112b7944b49c15b2ba1552d1219a862d027f4c3a675e3",
+    "packages/cadgen/src/cadgen/daemon/memory.py": "5e4efc6c90890ce785d8e325ccff9c9ab8d45e065bf8dab45c942af33803295d",
+    "packages/cadgen/MEMORY.md": "fbe7d8c74e7521cf0a31ff2b2962723bd0b302ebf042ab1608d683cede6e7875",
+    "tests/python/packages/cadgen/test_daemon_pool.py": "162ddf8d4fef33d71baa1babf488e3b6ae9c90b0128ad14490db8c77d79c9b7c",
+    "tests/python/packages/cadgen/test_daemon_admission.py": "9b7cafb1c1a4fff8e51e3cc5d80f1d1490ace99107f70faa0a12b104778e7132",
+    "tests/python/packages/cadgen/test_daemon_memory.py": "17a2dbb1bfe24a698cdbc1c00029bda15f3d354e9ca6ca52632ab203663307ec"
+  },
+  "installedIdentity": "cad@homelab-plugins",
+  "installedVersionUnchanged": "0.5.5",
+  "sourceInstalled": false,
+  "checks": [
+    {
+      "name": "Windows pool/client/admission/memory and global boundaries",
+      "tests": 117,
+      "seconds": 1.059,
+      "passed": true
+    },
+    {
+      "name": "Windows singleton/channel encoding/platform/status",
+      "tests": 14,
+      "seconds": 0.183,
+      "passed": true
+    },
+    {
+      "name": "Native WSL jobs/retirement",
+      "tests": 23,
+      "seconds": 14.226,
+      "passed": true
+    },
+    {
+      "name": "Native WSL three-level daemon build, one slot",
+      "tests": 1,
+      "seconds": 29.845,
+      "passed": true
+    },
+    {
+      "name": "Native WSL focused store rules",
+      "tests": 16,
+      "seconds": 14.726,
+      "passed": true
+    },
+    {
+      "name": "Release-pin tests, isolated LF script copy",
+      "tests": 14,
+      "seconds": 0.509,
+      "passed": true
+    },
+    {
+      "name": "Official validator, edited skills",
+      "skills": [
+        "cad",
+        "dxf",
+        "urdf",
+        "sdf",
+        "srdf"
+      ],
+      "passed": true
+    },
+    {
+      "name": "Canonical bundle freshness with temporary LF comparison",
+      "log": "bundle-check.log",
+      "passed": true
+    }
+  ],
+  "fullRepositorySuiteRun": false,
+  "newWheelValidated": false,
+  "limits": "Focused source validation; physical fabrication and remaining geometry matrix cases unverified."
+}

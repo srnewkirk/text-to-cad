@@ -1,0 +1,6 @@
+[cadgen-daemon] pid 404 serving /tmp/cad-camera-34f1fbc4.sock (token 0.4.28:1791310586635606100, idle timeout 3600s)
+[cadgen-daemon] run ['/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py'] -> exit 0 in 34.35s (worker 418)
+[cadgen-daemon] run ['/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py', '--json'] -> exit 0 in 70.84s (worker 412)
+[cadgen-daemon] run ['/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py', '--json'] -> exit 0 in 1.35s (worker 412)
+[cadgen-daemon] run ['/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py', '--json', '--force'] -> exit 0 in 13.56s (worker 412)
+[cadgen-daemon] version token changed; exiting

@@ -1,0 +1,22 @@
+{
+  "address": "/tmp/cad-camera-34f1fbc4.sock",
+  "serverPid": 404,
+  "serverExit": 0,
+  "observedOwnedPids": [
+    404,
+    406,
+    412,
+    418,
+    425,
+    432,
+    435
+  ],
+  "survivors": [],
+  "headroomAfter": {
+    "available_bytes": 3590778880,
+    "source": "Linux MemAvailable; 0 finite cgroup allowance(s)",
+    "error": null,
+    "observed_at": 136.176783205,
+    "enforced": true
+  }
+}

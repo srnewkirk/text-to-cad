@@ -21,9 +21,13 @@ Protocol — one JSON request per connection, JSON-lines response:
             is running and exits so the client can respawn a fresh one.
 
 Routing: a request that names a model script goes to THAT model's worker
-(STORE.md §9). A busy worker means an extra, never a wait; a model with no
-worker binds a spare; no spare means a spawn. Requests that name no script
-borrow a spare for one job. Nothing here caps, counts memory or queues.
+(STORE.md §9). A busy worker means an extra; a model with no worker binds a
+spare; no spare means a spawn subject to resident/headroom admission. Server
+requests can wait cancellably for releasable contention, with bounded refusal
+when active broker slots, imports or owned teardown cannot make progress.
+Requests that name no script borrow a spare for one job. Windows/Linux check
+soft available headroom on spawn and warm reuse; estimates cannot constrain
+later native allocations.
 """
 
 from __future__ import annotations
@@ -136,33 +140,46 @@ def _read_request(conn: transport.Channel) -> dict | None:
     return request if isinstance(request, dict) else None
 
 
-def _watch_client(
-    conn: transport.Channel,
-    send_lock: threading.Lock,
-    done: threading.Event,
-    tool: str,
-    worker,
-) -> None:
-    """Kill the WORKER when the requesting client vanishes mid-job.
+class _RequestLiveness:
+    """One requesting connection; cancellation is independent of worker admission."""
 
-    A client sends one request frame and then only reads, so having nothing to read from
-    it is the normal state rather than a symptom. The reliable death signal is a FAILED
-    SEND: the channel raises as soon as the peer is gone. An empty stdout chunk is a no-op
-    for every client, so it doubles as the liveness probe.
+    def __init__(self, conn, send_lock, tool):
+        self.conn, self.send_lock, self.tool = conn, send_lock, tool
+        self.cancelled = threading.Event()
+        self.done = threading.Event()
+        self.guard = threading.Lock()
+        self.worker = None
+        self.thread = threading.Thread(target=self.watch, daemon=True)
 
-    Killing the one worker leaves the supervisor and every other job alone; the pool
-    binds a fresh worker to that model on its next request.
-    """
-    while not done.wait(CLIENT_LIVENESS_INTERVAL_SECONDS):
-        try:
-            with send_lock:
-                _send(conn, {"stream": "stdout", "data": ""})
-        except OSError:
-            if done.is_set():
+    def attach(self, worker):
+        with self.guard:
+            if self.cancelled.is_set():
+                return False
+            self.worker = worker
+            return True
+
+    def watch(self):
+        while not self.done.wait(CLIENT_LIVENESS_INTERVAL_SECONDS):
+            try:
+                with self.send_lock:
+                    _send(self.conn, {"stream": "stdout", "data": ""})
+            except OSError:
+                with self.guard:
+                    self.cancelled.set()
+                    worker = self.worker
+                    if worker is not None and not self.done.is_set():
+                        _log(f"{self.tool}: client disconnected; killing worker {worker.pid}")
+                        worker.kill()
                 return
-            _log(f"{tool}: client disconnected mid-request; killing worker {worker.pid}")
-            worker.kill()
-            return
+
+    def stop(self):
+        self.done.set()
+        # Clear attachment under the same guard used to claim a kill. Once this
+        # returns, a watcher still finishing a probe cannot target this worker.
+        # A kill already claimed completes under the guard before release.
+        with self.guard:
+            self.worker = None
+        self.thread.join(timeout=CLIENT_LIVENESS_INTERVAL_SECONDS + 7.0)
 
 
 def _status_payload() -> dict:
@@ -233,16 +250,21 @@ def _document_path(candidates, base: object) -> str:
 
 
 def _handle_request(conn: transport.Channel, request: dict) -> None:
-    """Relay one job to a warm worker and stream its frames back to the client."""
-    send_lock = threading.Lock()
-    started = time.perf_counter()
-
+    """Monitor the connection through coalescing, admission, and execution."""
     if request.get("kind") in {"slot", "inflight"}:
-        # A worker asking for a job slot or registering a job in flight. Blocks for the
-        # lease's lifetime on this request thread.
         _BROKER.handle(conn, request)
         return
+    send_lock = threading.Lock()
+    liveness = _RequestLiveness(conn, send_lock, request.get("tool"))
+    liveness.thread.start()
+    try:
+        _handle_job(conn, request, send_lock, liveness)
+    finally:
+        liveness.stop()
 
+
+def _handle_job(conn, request, send_lock, liveness):
+    started = time.perf_counter()
     tool = request.get("tool")
     argv = request.get("argv")
 
@@ -259,26 +281,41 @@ def _handle_request(conn: transport.Channel, request: dict) -> None:
     # file are still one job).
     subject = model or _document_path(argv, cwd)
     closure = str(request.get("closure") or "")
-    job = _JOBS.adopt(_JOBS.start(tool=tool, subject=subject, argv=argv), subject=subject, tool=tool, argv=argv)
     inflight = None
     if subject and closure and request.get("coalesce"):
         inflight = _BROKER.claim(subject, closure)
         if inflight is not None:
             # Identical source is already building: attach, relay its exit, run nothing.
             _log(f"{tool} {model}: coalesced onto the job in flight")
-            inflight["done"].wait()
+            while not inflight["done"].wait(CLIENT_LIVENESS_INTERVAL_SECONDS):
+                if liveness.cancelled.is_set():
+                    return
             code = inflight["exit"] if inflight["exit"] is not None else 1
-            _JOBS.finish(job, code)
             with contextlib.suppress(OSError), send_lock:
                 _send(conn, {"exit": code})
             return
+    # A follower observes the producer's row and owns no ledger entry. Adopt
+    # only after claiming production; follower cancellation must not finish a
+    # producer row returned by the subject-based adoption mechanism.
+    job = _JOBS.adopt(_JOBS.start(tool=tool, subject=subject, argv=argv), subject=subject, tool=tool, argv=argv)
     try:
-        worker = _POOL.acquire(model)
+        def report_wait(reason):
+            with send_lock:
+                try:
+                    _send(conn, {"stream": "stderr", "data": f"cadgen-daemon: waiting for worker admission: {reason}\n"})
+                except OSError:
+                    liveness.cancelled.set()
+        worker = _POOL.acquire(model, cancelled=liveness.cancelled.is_set,
+                               on_wait=report_wait,
+                               productive=lambda: _BROKER.snapshot()["running"] > 0)
+        if not liveness.attach(worker):
+            _POOL.release(worker, healthy=True)
+            raise pool_mod.AdmissionCancelled("client disconnected before worker attachment")
     except (pool_mod.WorkerGone, pool_mod.WorkerCapacity, OSError) as exc:
-        # A spawn that never announced itself. There is no worker to blame and nothing
-        # to retry warm; the client sees the failure and can run cold.
+        # Capacity refusal is terminal: cold fallback would bypass admission.
+        # Cancellation also completes this request's ledger/coalescing ownership.
         _log(f"{tool}: could not start a worker: {exc}")
-        _JOBS.finish(job, 1)
+        _JOBS.finish(job, 1, error=str(exc))
         if subject and closure and request.get("coalesce"):
             _BROKER.finish(subject, closure, 1)
         with contextlib.suppress(OSError), send_lock:
@@ -290,22 +327,20 @@ def _handle_request(conn: transport.Channel, request: dict) -> None:
     # The tail of the job's stderr: on failure its last FAILED/exception line is the
     # reason the ledger records, so a reader (the CAD Viewer) can say why.
     stderr_tail: collections.deque[str] = collections.deque(maxlen=80)
-    watchdog_done = threading.Event()
-    watchdog = threading.Thread(
-        target=_watch_client, args=(conn, send_lock, watchdog_done, tool, worker), daemon=True
-    )
-    watchdog.start()
     try:
-        worker.send({
-            "kind": "run",
-            "tool": tool,
-            "prog": request.get("prog"),
-            "argv": [str(a) for a in argv],
-            "cwd": request.get("cwd"),
-            "env": request.get("env"),
-            "store_root": request.get("store_root"),
-            "root_id": request.get("root_id"),
-        })
+        with liveness.guard:
+            if liveness.cancelled.is_set():
+                raise pool_mod.WorkerGone("client disconnected before worker execution")
+            worker.send({
+                "kind": "run",
+                "tool": tool,
+                "prog": request.get("prog"),
+                "argv": [str(a) for a in argv],
+                "cwd": request.get("cwd"),
+                "env": request.get("env"),
+                "store_root": request.get("store_root"),
+                "root_id": request.get("root_id"),
+            })
         for frame in worker.frames(silence_timeout=WORKER_SILENCE_TIMEOUT_SECONDS):
             if "exit" in frame:
                 exit_code = int(frame.get("exit") or 0)
@@ -335,8 +370,8 @@ def _handle_request(conn: transport.Channel, request: dict) -> None:
             worker.kill()
         healthy = False
     finally:
-        watchdog_done.set()
-        watchdog.join(timeout=CLIENT_LIVENESS_INTERVAL_SECONDS + 1.0)
+        # Stop the watcher before release: it must never kill a reused worker.
+        liveness.stop()
         # A killed worker is not reusable; release() drops it and the pool respawns.
         _POOL.release(worker, healthy=healthy and worker.alive())
         reason = failure_message("".join(stderr_tail))[0] if exit_code != 0 else None

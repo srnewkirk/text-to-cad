@@ -42,7 +42,13 @@ After completing SRDF work that creates or modifies a `.srdf`, you must ALWAYS h
 
 ## Required workflow
 
-1. **Start from a valid URDF.** Author or fix the URDF first with `$urdf` and validate it. The SRDF pairs with that URDF by colocation and robot name, and every name in the SRDF must exist in it.
+For edits, group coupled planning-group, end-effector, state, and collision
+changes by planning intent. Validate the affected semantics before adding
+unrelated changes; retain full cross-validation of every modified SRDF and the
+required final MoveIt checks. Reuse a valid paired URDF and unchanged geometry;
+planning-only changes do not require geometry regeneration.
+
+1. **Start from a valid URDF.** Reuse the valid paired URDF; author or fix it with `$urdf` and validate it when needed. The SRDF pairs with that URDF by colocation and robot name, and every name in the SRDF must exist in it.
 2. **Extract the URDF table.** Before writing any SRDF XML, list the URDF's robot name, links, joints (with type, parent, child, limits, mimic flags). Copy names from this table only; never type them from memory. See `references/srdf-workflow.md`.
 3. **Identify the planning task.** Record whether the goal is arm IK, gripper control, mobile base planning, dual-arm planning, tool use, or local smoke testing.
 4. **Create or update the planning ledger.** Use `references/planning-ledger.md` before writing XML; keep a compact copy as a comment block in the `.srdf`.

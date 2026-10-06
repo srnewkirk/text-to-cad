@@ -60,7 +60,7 @@ def _settle(pool: pool_mod.Pool, timeout: float = 5.0) -> None:
 
 class _PoolFixture(unittest.TestCase):
     def setUp(self) -> None:
-        memory = mock.patch.object(runtime_limits, "_windows_available_memory", return_value=None)
+        memory = mock.patch.object(runtime_limits, "_windows_available_memory", return_value=256 * 1024**3)
         memory.start()
         self.addCleanup(memory.stop)
         limit = mock.patch.dict(os.environ, {"CADGEN_DAEMON_MAX_WORKERS": "128"})
@@ -240,7 +240,7 @@ class IdleUnbind(unittest.TestCase):
     """A bound worker idle for ten minutes returns to spare; nothing else is ever unbound."""
 
     def setUp(self) -> None:
-        memory = mock.patch.object(runtime_limits, "_windows_available_memory", return_value=None)
+        memory = mock.patch.object(runtime_limits, "_windows_available_memory", return_value=256 * 1024**3)
         memory.start()
         self.addCleanup(memory.stop)
         patcher = mock.patch.object(pool_mod, "Worker", _StubWorker)
@@ -580,6 +580,378 @@ class Status(_PoolFixture):
         self.assertEqual(snapshot["concurrent"], 1)
         self.assertEqual(snapshot["jobsServed"], 1)
         self.pool.release(primary)
+
+
+class AdmissionWaiting(_PoolFixture):
+    def setUp(self):
+        super().setUp()
+        self.pool._limit = 1
+        self.enterContext(self._spares(0))
+        self.enterContext(mock.patch.object(pool_mod, "ADMISSION_TRANSITION_GRACE_SECONDS", 0.03))
+        self.enterContext(mock.patch.object(pool_mod, "ADMISSION_POLL_SECONDS", 0.005))
+        self.enterContext(mock.patch.object(pool_mod, "SPAWN_TIMEOUT_SECONDS", 0.5))
+
+    def _pending(self, **kwargs):
+        waiting = threading.Event()
+        executor = self.enterContext(concurrent.futures.ThreadPoolExecutor(max_workers=1))
+        future = executor.submit(self.pool.acquire, "/m/child.py",
+                                 on_wait=lambda reason: waiting.set(), **kwargs)
+        self.assertTrue(waiting.wait(1), "request did not report admission waiting")
+        return future
+
+    def test_root_waits_for_active_release_without_overbooking(self):
+        parent = self.pool.acquire("/m/parent.py")
+        future = self._pending(productive=lambda: True)
+        self.assertFalse(future.done())
+        self.assertEqual(_StubWorker.spawned, 1)
+        self.pool.release(parent)
+        child = future.result(timeout=1)
+        self.assertTrue(parent.killed)
+        self.assertEqual(self.pool.snapshot()["workersStarting"], 0)
+        self.pool.release(child)
+
+    def test_two_waiters_cannot_claim_the_same_released_capacity(self):
+        parent = self.pool.acquire("/m/parent.py")
+        waiting = threading.Event()
+        seen = [0]
+        def report(reason):
+            seen[0] += 1
+            if seen[0] == 2:
+                waiting.set()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            futures = [executor.submit(self.pool.acquire, f"/m/{i}.py",
+                                      productive=lambda: True, on_wait=report) for i in range(2)]
+            self.assertTrue(waiting.wait(1))
+            self.pool.release(parent)
+            done, pending = concurrent.futures.wait(futures, timeout=1,
+                                                    return_when=concurrent.futures.FIRST_COMPLETED)
+            self.assertEqual(len(done), 1)
+            first = next(iter(done)).result()
+            self.assertEqual(len(self.pool.snapshot()["workers"]), 1)
+            self.pool.release(first)
+            second = next(iter(pending)).result(timeout=1)
+            self.assertEqual(len(self.pool.snapshot()["workers"]), 1)
+            self.pool.release(second)
+
+    def test_nested_waits_behind_productive_leaf(self):
+        self.pool._limit = 2
+        parent = self.pool.acquire("/m/parent.py")
+        leaf = self.pool.acquire("/m/leaf.py")
+        future = self._pending(productive=lambda: True)
+        self.pool.release(leaf)
+        child = future.result(timeout=1)
+        self.assertFalse(parent.killed)
+        self.pool.release(child)
+        self.pool.release(parent)
+
+    def test_yielded_parents_are_not_productive(self):
+        parent = self.pool.acquire("/m/parent.py")
+        future = self._pending(productive=lambda: False)
+        with self.assertRaisesRegex(pool_mod.WorkerCapacity, "no active work"):
+            future.result(timeout=1)
+        self.assertEqual(_StubWorker.spawned, 1)
+        self.assertFalse(parent.killed)
+        self.pool.release(parent)
+
+    def test_cancellation_waiting_does_not_take_later_capacity(self):
+        parent = self.pool.acquire("/m/parent.py")
+        cancelled = threading.Event()
+        future = self._pending(productive=lambda: True, cancelled=cancelled.is_set)
+        cancelled.set()
+        with self.assertRaises(pool_mod.AdmissionCancelled):
+            future.result(timeout=1)
+        self.assertEqual(self.pool._demand_waiters, 0)
+        self.pool.release(parent)
+        self.assertEqual(_StubWorker.spawned, 1)
+
+    def test_shutdown_wakes_contention_waiter(self):
+        self.pool.acquire("/m/parent.py")
+        future = self._pending(productive=lambda: True)
+        self.pool.shutdown()
+        with self.assertRaisesRegex(pool_mod.WorkerCapacity, "closed"):
+            future.result(timeout=1)
+
+    def test_productive_signal_does_not_allow_indefinite_wait(self):
+        parent = self.pool.acquire("/m/parent.py")
+        with mock.patch.object(pool_mod, "SPAWN_TIMEOUT_SECONDS", 0.03):
+            future = self._pending(productive=lambda: True)
+            with self.assertRaisesRegex(pool_mod.WorkerCapacity, "admission timed out"):
+                future.result(timeout=1)
+        self.pool.release(parent)
+
+    def test_stuck_retirement_remains_counted_and_bounded(self):
+        parent = self.pool.acquire("/m/parent.py")
+        self.pool.release(parent)
+        with mock.patch.object(parent, "kill", return_value=None), mock.patch.object(pool_mod, "SPAWN_TIMEOUT_SECONDS", 0.03):
+            future = self._pending(productive=lambda: False)
+            with self.assertRaisesRegex(pool_mod.WorkerCapacity, "timed out"):
+                future.result(timeout=1)
+        self.assertEqual(self.pool.snapshot()["workersRetiring"], 1)
+        self.assertEqual(_StubWorker.spawned, 1)
+        parent.kill()
+
+    def test_windows_headroom_reclaims_idle_below_resident_limit(self):
+        self.pool._limit = 3
+        parent = self.pool.acquire("/m/parent.py")
+        self.pool.release(parent)
+        available = lambda: 10 * 1024**3 if parent.killed else 1
+        with mock.patch.object(runtime_limits, "_windows_available_memory", side_effect=available):
+            child = self.pool.acquire("/m/child.py", productive=lambda: False)
+        self.assertTrue(parent.killed)
+        self.pool.release(child)
+
+    def test_waiting_demand_prevents_speculative_spare_refill(self):
+        parent = self.pool.acquire("/m/parent.py")
+        future = self._pending(productive=lambda: True)
+        with self._spares(1):
+            self.pool.release(parent)
+            child = future.result(timeout=1)
+            self.assertEqual(_StubWorker.spawned, 2)
+            self.assertEqual(self.pool.snapshot()["sparesPending"], 0)
+        self.pool.release(child)
+
+    def test_pre_cancelled_request_does_not_spawn(self):
+        with self.assertRaises(pool_mod.AdmissionCancelled):
+            self.pool.acquire("/m/child.py", cancelled=lambda: True, productive=lambda: True)
+        self.assertEqual(_StubWorker.spawned, 0)
+
+    def test_cancellation_after_reservation_returns_capacity_without_spawn(self):
+        cancelled = threading.Event()
+        reserve = self.pool._reserve_locked
+        def reservation(*args, **kwargs):
+            reserve(*args, **kwargs)
+            cancelled.set()
+        with mock.patch.object(self.pool, "_reserve_locked", reservation):
+            with self.assertRaises(pool_mod.AdmissionCancelled):
+                self.pool.acquire("/m/child.py", productive=lambda: True, cancelled=cancelled.is_set)
+        self.assertEqual(_StubWorker.spawned, 0)
+        self.assertEqual(self.pool.snapshot()["workersStarting"], 0)
+
+    def test_slow_reporting_does_not_hold_pool_lock(self):
+        parent = self.pool.acquire("/m/parent.py")
+        reporting, resume = threading.Event(), threading.Event()
+        def report(reason):
+            reporting.set()
+            self.assertTrue(resume.wait(1))
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            future = executor.submit(self.pool.acquire, "/m/child.py",
+                                     productive=lambda: True, on_wait=report)
+            self.assertTrue(reporting.wait(1))
+            try:
+                release = executor.submit(self.pool.release, parent)
+                release.result(timeout=0.5)
+            finally:
+                resume.set()
+            child = future.result(timeout=1)
+            self.pool.release(child)
+
+    def test_cancellation_during_spare_import_does_not_claim_spare(self):
+        entered, resume, cancelled = threading.Event(), threading.Event(), threading.Event()
+        original = self.pool._spawn
+        def warming():
+            entered.set()
+            self.assertTrue(resume.wait(1))
+            return original()
+        with self._spares(1), mock.patch.object(self.pool, "_spawn", warming):
+            self.pool.ensure_spares()
+            self.assertTrue(entered.wait(1))
+            try:
+                future = self._pending(productive=lambda: False, cancelled=cancelled.is_set)
+                cancelled.set()
+                with self.assertRaises(pool_mod.AdmissionCancelled):
+                    future.result(timeout=1)
+            finally:
+                resume.set()
+            _settle(self.pool)
+            self.assertFalse(self.pool.snapshot()["workers"][0]["busy"])
+
+    def test_cancelled_after_spawn_quarantines_new_worker(self):
+        cancelled = threading.Event()
+        original = self.pool._spawn
+        def spawning():
+            worker = original()
+            cancelled.set()
+            return worker
+        with mock.patch.object(self.pool, "_spawn", spawning):
+            with self.assertRaises(pool_mod.AdmissionCancelled):
+                self.pool.acquire("/m/child.py", productive=lambda: False, cancelled=cancelled.is_set)
+        self.assertEqual(self.pool.snapshot()["workersStarting"], 0)
+        self.assertFalse(any(w["busy"] for w in self.pool.snapshot()["workers"]))
+
+
+class MemoryAdmission(_PoolFixture):
+    def setUp(self):
+        super().setUp()
+        self.enterContext(self._spares(0))
+        self.pool._limit = 4
+        self.pool._memory_policy = pool_mod.memory.MemoryPolicy.for_platform("linux")
+        self.pool._startup_bytes = self.pool._memory_policy.startup_bytes
+        self.available = 16 * 1024**3
+        self.pool._headroom_reader = lambda: pool_mod.memory.Headroom(self.available, "test headroom")
+        self.pool._baseline_reader = lambda pid: None
+
+    def test_linux_demand_spawn_checks_startup_increment_and_reserve(self):
+        self.available = (1024 + 512 + 450) * 1024**2 - 1
+        with self.assertRaisesRegex(pool_mod.WorkerCapacity, "headroom"):
+            self.pool.acquire("/m/a.py")
+        self.assertEqual(_StubWorker.spawned, 0)
+        self.available += 1
+        worker = self.pool.acquire("/m/a.py")
+        self.pool.release(worker)
+
+    def test_windows_demand_preserves_four_gib_first_spawn_threshold(self):
+        self.pool._memory_policy = pool_mod.memory.MemoryPolicy.for_platform("win32")
+        self.pool._startup_bytes = self.pool._memory_policy.startup_bytes
+        self.available = 4 * 1024**3
+        worker = self.pool.acquire("/m/a.py")
+        self.pool.release(worker)
+
+    def test_warm_reuse_checks_increment_without_new_startup_cost(self):
+        worker = self.pool.acquire("/m/a.py")
+        self.pool.release(worker)
+        self.available = (1024 + 450) * 1024**2
+        again = self.pool.acquire("/m/a.py")
+        self.assertIs(again, worker)
+        self.assertEqual(_StubWorker.spawned, 1)
+        self.pool.release(again)
+
+    def test_pressure_reclaims_selected_warm_worker_before_refusal(self):
+        worker = self.pool.acquire("/m/a.py")
+        self.pool.release(worker)
+        self.available = 1
+        with self.assertRaisesRegex(pool_mod.WorkerCapacity, "headroom"):
+            self.pool.acquire("/m/a.py")
+        self.assertTrue(worker.killed)
+        self.assertEqual(_StubWorker.spawned, 1)
+
+    def test_unknown_headroom_refuses_without_destroying_idle_worker(self):
+        worker = self.pool.acquire("/m/a.py")
+        self.pool.release(worker)
+        self.available = None
+        with self.assertRaisesRegex(pool_mod.WorkerCapacity, "observation unavailable"):
+            self.pool.acquire("/m/a.py")
+        self.assertFalse(worker.killed)
+        with self._spares(2):
+            self.pool.ensure_spares()
+        self.assertEqual(self.pool.snapshot()["sparesPending"], 0)
+        self.assertEqual(_StubWorker.spawned, 1)
+
+    def test_failed_headroom_reader_skips_speculative_spares(self):
+        self.pool._headroom_reader = mock.Mock(side_effect=OSError("denied"))
+        with self._spares(2):
+            self.pool.ensure_spares()
+        with self.assertRaisesRegex(pool_mod.WorkerCapacity, "denied"):
+            self.pool.acquire("/m/a.py")
+        self.assertEqual(_StubWorker.spawned, 0)
+
+    def test_pending_spares_and_demands_have_distinct_reservations(self):
+        observation = pool_mod.memory.Headroom((1024 + 2 * 512 + 450 + 450) * 1024**2,
+                                               "test headroom")
+        with self.pool._cv:
+            self.pool._starting = 2
+            self.pool._spares_pending = 1
+            try:
+                self.pool._check_headroom_locked(observation, spawning=False, job=True)
+                with self.assertRaises(pool_mod.WorkerCapacity):
+                    self.pool._check_headroom_locked(observation, spawning=True, job=True)
+            finally:
+                self.pool._starting = self.pool._spares_pending = 0
+
+    def test_pending_demand_prevents_second_start_overbooking(self):
+        self.available = 2500 * 1024**2
+        entered, resume = threading.Event(), threading.Event()
+        spawn = self.pool._spawn
+        def delayed():
+            entered.set()
+            self.assertTrue(resume.wait(1))
+            return spawn()
+        with concurrent.futures.ThreadPoolExecutor(max_workers=1) as executor, mock.patch.object(self.pool, "_spawn", delayed):
+            future = executor.submit(self.pool.acquire, "/m/a.py")
+            self.assertTrue(entered.wait(1))
+            try:
+                with self.assertRaisesRegex(pool_mod.WorkerCapacity, "headroom"):
+                    self.pool.acquire("/m/b.py")
+                self.assertEqual(self.pool.snapshot()["workersStarting"], 1)
+            finally:
+                resume.set()
+            self.pool.release(future.result(timeout=1))
+
+    def test_resident_parent_is_not_added_again_to_available_accounting(self):
+        parent = self.pool.acquire("/m/parent.py")
+        self.available = (1024 + 512 + 450) * 1024**2
+        self.pool._baseline_reader = mock.Mock(side_effect=AssertionError("busy parent is not baseline"))
+        child = self.pool.acquire("/m/child.py")
+        self.assertFalse(parent.killed)
+        self.pool.release(child)
+        self.pool.release(parent)
+
+    def test_fresh_measurement_increases_startup_floor_but_not_job_cost(self):
+        spare = _StubWorker()
+        self.pool._workers.append(spare)
+        self.pool._baseline_reader = lambda pid: 768 * 1024**2
+        worker = self.pool.acquire("/m/a.py")
+        self.assertEqual(self.pool._startup_bytes, 768 * 1024**2)
+        self.assertEqual(self.pool._memory_policy.job_bytes, 450 * 1024**2)
+        self.pool.release(worker)
+
+    def test_failed_baseline_measurement_retains_seed(self):
+        spare = _StubWorker()
+        self.pool._workers.append(spare)
+        self.pool._baseline_reader = mock.Mock(side_effect=OSError("gone"))
+        worker = self.pool.acquire("/m/a.py")
+        self.assertEqual(self.pool._startup_bytes, 512 * 1024**2)
+        self.pool.release(worker)
+
+    def test_memory_observation_does_not_hold_global_admission_lock(self):
+        parent = self.pool.acquire("/m/parent.py")
+        entered, resume = threading.Event(), threading.Event()
+        def observe():
+            entered.set()
+            self.assertTrue(resume.wait(1))
+            return pool_mod.memory.Headroom(self.available, "test headroom")
+        self.pool._headroom_reader = observe
+        with concurrent.futures.ThreadPoolExecutor(max_workers=2) as executor:
+            future = executor.submit(self.pool.acquire, "/m/child.py")
+            self.assertTrue(entered.wait(1))
+            try:
+                executor.submit(self.pool.release, parent).result(timeout=0.5)
+            finally:
+                resume.set()
+            self.pool.release(future.result(timeout=1))
+
+    def test_other_platform_preserves_resident_only_admission(self):
+        self.pool._headroom_reader = lambda: pool_mod.memory.Headroom(None, "resident only", enforced=False)
+        worker = self.pool.acquire("/m/a.py")
+        self.pool.release(worker)
+
+    def test_stale_headroom_is_resampled_before_admission(self):
+        stale = pool_mod.memory.Headroom(self.available, "stale", observed_at=time.monotonic() - 1)
+        self.pool._headroom_reader = mock.Mock(side_effect=[stale, pool_mod.memory.Headroom(self.available, "fresh")])
+        worker = self.pool.acquire("/m/a.py")
+        self.assertEqual(self.pool._headroom_reader.call_count, 2)
+        self.pool.release(worker)
+
+
+class WorkerPipeOwnership(unittest.TestCase):
+    def test_retirement_does_not_close_frame_readers_stdout(self):
+        worker = pool_mod.Worker.__new__(pool_mod.Worker)
+        worker.proc = mock.Mock()
+        worker.proc.poll.return_value = 0
+        worker.kill()
+        worker.proc.stdout.close.assert_not_called()
+        worker.proc.stdin.close.assert_called_once()
+
+    def test_frame_reader_closes_stdout_and_reports_eof(self):
+        import io
+        import queue
+        worker = pool_mod.Worker.__new__(pool_mod.Worker)
+        stream = io.StringIO('{"exit":0}\n')
+        worker.proc = mock.Mock(stdout=stream)
+        worker._frames = queue.Queue()
+        worker._pump()
+        self.assertTrue(stream.closed)
+        self.assertEqual(worker._frames.get_nowait(), {"exit": 0})
+        self.assertIsNone(worker._frames.get_nowait())
 
 
 if __name__ == "__main__":

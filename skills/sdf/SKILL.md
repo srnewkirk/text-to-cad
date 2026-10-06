@@ -41,7 +41,7 @@ python -m playwright install chromium
 7. Write `relative_to` / `expressed_in` explicitly on every nontrivial pose and axis. Implicit frame defaults are the top SDF failure mode. See `references/frame-semantics.md`.
 8. Do not infer spatial transforms from visual impression alone. Derive poses, axes, scale, mass, inertia, and frame names from upstream source data, drawings, simulator documentation, measured values, or explicit assumptions. Never freehand computed numbers — use formulas or a throwaway helper script (inertia tensors, unit conversions).
 9. When the robot already has a URDF, derive the SDF from it instead of re-authoring geometry; see `references/interoperability.md`.
-10. Regenerate upstream geometry, mesh, robot-description, render, topology, or package assets with their owning workflows before editing SDF that references them.
+10. Reuse valid upstream assets. Regenerate changed or missing geometry, mesh, robot-description, render, topology, or package assets with their owning workflows before relying on them in SDF.
 11. After authoring, run available checks: bundled validation, optional `gz sdf --check`, simulator load, joint motion, and plugin/sensor startup.
 12. Report assumptions, skipped checks, unresolved resource paths, and target-specific compatibility risks.
 
@@ -54,6 +54,12 @@ Use this skill for SDFormat outputs. Do not use it for signed-distance-field mod
 After completing SDF work that creates or modifies a `.sdf`, you must ALWAYS hand the explicit file path to `$cad-viewer` when that skill is installed. `$cad-viewer` must start CAD Viewer if it is not already running and return link(s) to the relevant created or updated file(s); if `$cad-viewer` is unavailable or startup fails, report that instead of silently omitting the handoff.
 
 ## Workflow
+
+For edits, keep coupled frame, joint, sensor, or world changes in one coherent
+increment and complete its edit/validate/review loop before unrelated work.
+Check affected relationships during iteration, then validate every modified SDF
+and retain required consumer smoke tests. Read-only inspection and simulator
+handoffs do not require rebuilding unchanged upstream assets.
 
 1. Locate the target `.sdf` and its consumers.
 2. Read or create the design ledger comment block.

@@ -4,12 +4,28 @@ Read this file when generation, export, inspection, positioning, snapshot review
 
 ## Loop
 
-1. Read the failing command output.
-2. Classify the failure.
-3. Make the smallest responsible source or command change.
-4. Rerun the failed command.
-5. Rerun any dependent validation checks.
-6. Report remaining risk or deliberate deviations.
+Choose the repair boundary by design intent, coupling, and uncertainty. Make
+predictable coupled corrections together, then close the affected edit/build/
+inspect loop before unrelated work. For uncertain geometry, isolate the
+responsible feature and preserve the last-good source and valid artifacts.
+
+1. Read the failing command output and classify the failure.
+2. Make the smallest responsible source or command change; retain recoverable
+   good files using ordinary project tools.
+3. Rebuild explicit affected targets, then rerun the failed and dependent
+   validation checks.
+4. Inspect the result and report remaining risk or deliberate deviations.
+
+When a build is unexpectedly expensive or broad, inspect its dependencies with
+`cadgen store why <model.py>` and investigate changed inputs, costly geometry,
+or duplicated work before raising resource limits. Parent builds already run
+stale children in parallel. Daemon admission reports cancellable waiting for
+releasable contention and refuses non-progressing or timed-out admission. It
+reclaims owned idle workers without deleting persistent artifacts. Windows/Linux
+check soft available headroom before spawning and warm reuse, and refuse when
+required observations are unavailable. Neither these estimates nor a worker
+count guarantee that later geometry allocations fit. Feature names do not
+automatically define independent cached units.
 
 ## Failure classes and fixes
 

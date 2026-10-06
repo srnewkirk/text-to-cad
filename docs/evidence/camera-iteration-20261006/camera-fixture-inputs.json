@@ -1,0 +1,25 @@
+{
+  "inputCommit": "d398c321e33696ec6e4e387f308e8c4a9fe7146a",
+  "sourceBase": "3ff9a8428510dcadae4d4747db31bf2d79560f22",
+  "fixture": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation",
+  "inputHashes": {
+    "AGENTS.md": "79109d9f2696f7c8ea8efa0c77112ee15d90f4ec20f725b76be38266351f97f9",
+    "cad/src/design/camera_display/display_holder.py": "3046fa387ddd77d8bc69ad27e013f4cd0015d8db765cf4a9c897d90b5ecaac0e",
+    "cad/src/design/camera_display/wall_plate.py": "3b3865542ac7c32c140cc23425a334a3f5760ffe87d0bdb7464d6beaaafce6a8",
+    "cad/src/assemblies/camera_display/display_holder_fit.py": "1182eef4dace79738d28f6cea58770561784d59956a2ef8823b6e29b7bbe6239",
+    "cad/src/assemblies/camera_display/wall_plate_fit.py": "826c37ee36f56602e9a4a5c82de7522eb1ef7435a0f0b0f6bb7c1813c66c0567",
+    "cad/src/lib/camera_display/community_holder.py": "65bfc96077759537183b1dfdc5483370f4551214197cba97090bbb895520f906",
+    "cad/src/lib/camera_display/display_interface.py": "85d2cfe12935f5e0da1e4cffeccae1bc54dfdcafd4dcc2659e8ba6103567874b",
+    "cad/src/lib/camera_display/snap_interface.py": "11dc96d757f17c2000605abcbb92533c91c8570d3390eb86f4c1ffc7b1e2d145",
+    "cad/src/lib/shared/community_shell.py": "38d36075db6b00c6a467799bc356d59a8365c911bbfba95e1c8e14a1502a036f",
+    "cad/src/lib/shared/wall_mount.py": "67ef32135427d27042c3b7ecd93a79b7f12c6dec237cde0e86fad9dd7d0a29aa",
+    "cad/src/lib/shared/reference_lid.py": "01ba700ade9d29fc60e06e9ba72f9e136718679e595fc4c444b2f65aeb86cc0b",
+    "cad/src/lib/shared/box_mount.py": "b8f5f2ec5380afa8025e64d0198c7ce1ceb8f75a6a406bcfed1b81a361b17fba",
+    "cad/src/references/active/jc4880p443c_i_w_y_community.py": "e315bb82ed64e2108a485a2837a6ecf6fea629f8e6052538949b32d71637e3b2",
+    "docs/projects/single-gang-camera-display/current-design.md": "11136ca12c0f0e7cd06fa8e63d63afc6cf1a8de3c6d4218201d7da2a0c06c90c",
+    "docs/projects/single-gang-camera-display/evidence/community-stand/4.3inch+Screen+Stand.3mf": "b2ce04d1575e9a7a87f865a68f1ca17c0a3197880a182ad1549b286ce9bb4833",
+    "docs/projects/single-gang-tft-wall-panel/evidence/community-models/Snap on wall plate.stl": "abdc5082dc2dbe3cb98951ef55b86236651679f7b209f3c7e13a64607a9f2689",
+    "docs/projects/single-gang-tft-wall-panel/evidence/community-models/Basic_snap_case_v3_Top_100x50x30.stl": "9ad5b59bae84979d9a28fb3aeb85134f302bcffa6805ea82ec82f687e77e8cfe",
+    "docs/projects/single-gang-tft-wall-panel/evidence/jc4880p443c/community/ESP32-P4-Guition_BLACK_WITH_ACTIVE_LIGHT_DISPLAY_in_FUSION360_v42.step": "92d841f471bd0bd877cb04ddfc243b2061976f5ce21f8419562fc1513ae8e6b0"
+  }
+}

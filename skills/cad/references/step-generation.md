@@ -128,6 +128,29 @@ it executes, so it is in the closure either way. Prefer module-top imports for
 readability and so the static scan sees the graph up front; a lazy import is
 not an error.
 
+## Coherent authoring increments
+
+Choose an edit boundary from design intent, coupling, and uncertainty. Batch
+predictable coupled details in one useful review unit; for example, change a
+hole pattern, its bosses, and counterbores together when they express one
+mounting interface. Isolate an uncertain loft, boolean, or fit decision, then
+finish its affected build and inspection before taking on unrelated edits.
+Purpose-name logical features in the source, but keep their runtime boundary
+honest: features within a model function are not separately cached build units.
+
+Treat purchased components as external constraints. Correct or replace their
+reference geometry at the needed fit fidelity rather than redesigning them as
+fabricated parts. For mating fabricated parts, define the shared interface in
+one source helper or authoritative set of values and consume it on both sides
+and in the fit assembly. Do not duplicate interface dimensions.
+
+For each increment, build the changed model and affected consuming targets;
+parent models pull stale children. Reuse valid results, and consult
+`cadgen store why <model.py>` before responding to surprising rebuild cost by
+raising limits. Preserve the last-good source and valid artifacts so a failed
+change can be localized and repaired with ordinary project tools; no commit
+per increment is required.
+
 ## Generated vs imported STEP
 
 These two terms classify a STEP file by what its source is:
@@ -203,7 +226,7 @@ deep-copies the geometry, which makes it the parent's own component instead
 of a link (`positioning.md`). Put geometry changes that belong to the child in
 the child's file or its factory.
 
-**Every build is parallel.** A child call returns at once with a lazy shape
+**Child builds run in parallel.** A child call returns at once with a lazy shape
 and submits the child's build to the pool; the body keeps calling siblings,
 each landing on its own worker; the parent waits when it first reads geometry
 — normally the closing `bd.Compound(children=[...])`, after every sibling has
@@ -222,12 +245,13 @@ the assemblies that use it** — run the parent to pick up the change
 rest). A parent finished against a child that changed during its build says so
 (`already stale: … rerun`).
 
-**Builds never wait on or cancel one another.** Two runs of one model both
-run to completion; each publishes what it built and the store keeps the one
-whose sources match the files as they are now. Editing a child while its
+**Concurrent builds do not cancel one another.** Admitted top-level runs of
+one model compute independently; each publishes what it built and the store
+keeps the one whose sources match the files as they are now. Admission may wait
+or fail under contention. Editing a child while its
 parent builds leaves the parent finished against the child it pinned — its
 next gate says stale (`store why` shows the pinned vs current tree). There is
-no lock anywhere.
+no store publication lock.
 
 ### What a rebuild tracks — models by result, constants by value, functions by file
 
@@ -503,7 +527,7 @@ CADGEN_DAEMON=0 python part.py      # transient workers, spawned for this run
 ```
 
 - **One worker per model.** A request lands on the worker bound to its model
-  script; a busy worker means a second one (an *extra*) runs the job now; a
+  script; a busy worker needs a second one (an *extra*), subject to admission; a
   model with no worker takes a warm spare (`CADGEN_DAEMON_SPARES`, default 2,
   refilled in the background within the resident budget). Idle model workers
   may be evicted to admit a new model.
@@ -518,18 +542,41 @@ CADGEN_DAEMON=0 python part.py      # transient workers, spawned for this run
   job-slot limit during a fan-out queues active work.
 - **Idle workers unbind after 10 minutes** (`CADGEN_DAEMON_IDLE_UNBIND`,
   seconds) and return to the spare set; the daemon exits after an hour with no
-  request (`CADGEN_DAEMON_IDLE_TIMEOUT`). Both are about RAM; neither ever
-  blocks a build.
+  request (`CADGEN_DAEMON_IDLE_TIMEOUT`). Both control retained process state;
+  active model workers remain bound.
 - **Resident workers are capped separately.** `CADGEN_DAEMON_MAX_WORKERS`
   defaults to four, read when the daemon starts. Spares, pending imports,
-  retiring workers and waiting parents count too. If all capacity is busy,
-  admission fails immediately rather than deadlocking a parent behind its
-  child. Requests may wait for pending spare imports up to the spawn timeout;
-  they never queue behind active builds. Failed termination leaves a worker
-  quarantined and counted until its exit is observed.
-  Build dependencies separately, then retry the parent. Windows checks
-  RAM and commit headroom before spawning (2 GiB per pending spawn plus a
-  2 GiB host reserve). This cannot constrain a model's later allocations.
+  retiring workers and waiting parents count too. Daemon requests report
+  cancellable admission waiting while active broker slots, pending imports,
+  or owned retirement may free capacity. Waiting demand takes priority over
+  speculative spare replenishment. A two-second transition grace avoids
+  rejecting immediately between dispatch and slot acquisition; it is a
+  conservative observation, not exact dependency analysis. Admission refuses
+  when no productive work is observed after that grace, or after the existing
+  120-second startup-time allowance. A yielded parent retains its resident
+  worker, so busy parents alone cannot justify waiting indefinitely. Direct
+  `Pool.acquire` callers still fail at capacity unless they opt into waiting.
+  Failed termination leaves a worker quarantined and counted until its exit
+  is observed. On refusal, build dependencies separately, then retry the parent.
+  Waiting admission is cancellable. An import already started still waits for
+  worker readiness or its separate 120-second startup timeout before cleanup;
+  disconnected requests do not dispatch work afterward.
+  Windows/Linux also check available headroom before spawning and warm reuse.
+  Linux uses host `MemAvailable` capped by remaining finite limits in the
+  process's visible cgroup hierarchy; Docker and retained parent memory reduce
+  that actual availability. Linux estimates a 512 MiB startup floor (raised
+  by measured fresh idle workers), a 450 MiB next-job increment, and a 1 GiB
+  system reserve. Demand starts reserve startup plus increment; spare imports
+  reserve startup only. Windows retains its 2 GiB start reservation plus 2 GiB
+  system reserve; that start reservation already includes work. Warm reuse
+  requires the 450 MiB increment plus the applicable system reserve and pending
+  starts. Resident memory is not added again to the available-side calculation.
+  Missing required Windows/Linux observations refuse admission and skip spare
+  warming; failed baseline measurement retains the startup seed. Other platforms
+  retain resident-count admission without these memory observations.
+  These are soft policy estimates, not a geometry-size predictor or an enforced
+  memory limit. Simultaneous jobs can grow after admission. Reduce unrelated
+  work and build affected targets rather than bypassing a refusal with cold mode.
   Spawned workers use one BLAS/OpenMP/NumExpr thread each. A worker the OS
   kills mid-job is reported as a dead worker with
   its exit status, the job it held, and the exact `CADGEN_DAEMON=0 ...` rerun;

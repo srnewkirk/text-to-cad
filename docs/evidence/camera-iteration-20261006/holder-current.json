@@ -1,0 +1,63 @@
+{
+  "operation": "model build",
+  "argv": [
+    "/home/srnew/.cache/text-to-cad/wsl-pilot-0.5.5/sessions/20261006-080924-0838c4/project/cad/src/design/camera_display/display_holder.py"
+  ],
+  "exitCode": 0,
+  "elapsedSeconds": 5.0549353409999895,
+  "sampleIntervalSeconds": 0.1,
+  "samples": 50,
+  "processTreePeakRssBytes": 466731008,
+  "guestMinimumAvailableBytes": 3325726720,
+  "guestPeakSwapUsedBytes": 0,
+  "guestBefore": {
+    "available": 3573018624,
+    "swapUsed": 0,
+    "oom_kill": 0,
+    "pswpin": 0,
+    "pswpout": 0,
+    "pgmajfault": 2921
+  },
+  "guestAfter": {
+    "available": 3472437248,
+    "swapUsed": 0,
+    "oom_kill": 0,
+    "pswpin": 0,
+    "pswpout": 0,
+    "pgmajfault": 3256
+  },
+  "hostBefore": {
+    "commit": 27960827904,
+    "physical": 3313700864
+  },
+  "hostAfter": {
+    "commit": 27211067392,
+    "physical": 2594439168
+  },
+  "envelope": {
+    "before": "model build",
+    "host": {
+      "commit": 27960827904,
+      "physical": 3313700864
+    },
+    "guestAvailable": 3573018624,
+    "guestTotal": 4109647872,
+    "swapTotal": 2147483648,
+    "cpus": 4
+  },
+  "cacheDir": "/home/srnew/.cache/text-to-cad/wsl-pilot-0.5.5/sessions/20261006-080924-0838c4/measured-stores/b1ba199832b84dde9b724acfa7868269",
+  "vmstatDelta": {
+    "oom_kill": 0,
+    "pswpin": 0,
+    "pswpout": 0,
+    "pgmajfault": 335
+  },
+  "log": "/home/srnew/.cache/text-to-cad/wsl-pilot-0.5.5/sessions/20261006-080924-0838c4/measurements/20261006-124113-c645a2/model-build.log",
+  "observedOutcome": "current",
+  "outputSha256": {
+    "STEP/design/camera_display/display_holder.step": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+    "3MF/design/camera_display/display_holder.3mf": "483b055fbf2edfb462d212fef520763945557a4ff6d5c2d37f25e1589d3feddd"
+  },
+  "inputCommit": "d398c321e33696ec6e4e387f308e8c4a9fe7146a",
+  "wheelSha256": "b0d7cc8b77326f1460f359e2f2320e96e68983efe6ed3b7138fc496c346e5ae2"
+}

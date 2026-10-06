@@ -1,0 +1,669 @@
+[
+  {
+    "scenario": "source-daemon-fresh-holder",
+    "exitCode": 0,
+    "elapsedSeconds": 81.60592319099999,
+    "processTreePeakRssBytes": 2325667840,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "available": 3584487424,
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0
+    },
+    "guestAfter": {
+      "available": 2383351808,
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0
+    },
+    "statusBefore": {
+      "workers": [],
+      "spares": 0,
+      "sparesPending": 0,
+      "sparesWanted": 0,
+      "workerLimit": 4,
+      "workersStarting": 0,
+      "workersRetiring": 0,
+      "jobsServed": 0,
+      "imports": 0,
+      "concurrent": 0,
+      "crashes": 0,
+      "recycles": 0,
+      "unbinds": 0,
+      "rejected": 0,
+      "evictions": 0,
+      "jobsRunning": {
+        "running": 0,
+        "limit": 1,
+        "queued": 0,
+        "peakRunning": 0,
+        "granted": 0,
+        "inflight": 0,
+        "coalesced": 0
+      },
+      "jobs": [],
+      "pid": 404,
+      "socket": "/tmp/cad-camera-34f1fbc4.sock",
+      "identity": "4680d82aacc5",
+      "version": "0.4.28",
+      "token": "0.4.28:1791310586635606100",
+      "startedAt": 1791310878.874945,
+      "requests": 0,
+      "inflight": 0
+    },
+    "statusAfter": {
+      "workers": [
+        {
+          "pid": 412,
+          "model": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "busy": false,
+          "extra": false,
+          "jobs": 1
+        },
+        {
+          "pid": 418,
+          "model": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py",
+          "busy": false,
+          "extra": false,
+          "jobs": 1
+        }
+      ],
+      "spares": 0,
+      "sparesPending": 0,
+      "sparesWanted": 0,
+      "workerLimit": 4,
+      "workersStarting": 0,
+      "workersRetiring": 0,
+      "jobsServed": 2,
+      "imports": 2,
+      "concurrent": 0,
+      "crashes": 0,
+      "recycles": 0,
+      "unbinds": 0,
+      "rejected": 0,
+      "evictions": 0,
+      "jobsRunning": {
+        "running": 0,
+        "limit": 1,
+        "queued": 0,
+        "peakRunning": 1,
+        "granted": 3,
+        "inflight": 0,
+        "coalesced": 0
+      },
+      "jobs": [
+        {
+          "id": "job-1",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/design/camera_display/display_holder.step",
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/3MF/design/camera_display/display_holder.3mf"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+            "--json"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310889.830085,
+          "updatedAt": 1791310960.6565447,
+          "finishedAt": 1791310960.3483846,
+          "exit": 0,
+          "error": null
+        },
+        {
+          "id": "job-2",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/references/active/jc4880p443c_i_w_y_community.step"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310903.953278,
+          "updatedAt": 1791310938.8342588,
+          "finishedAt": 1791310938.6877902,
+          "exit": 0,
+          "error": null
+        }
+      ],
+      "pid": 404,
+      "socket": "/tmp/cad-camera-34f1fbc4.sock",
+      "identity": "4680d82aacc5",
+      "version": "0.4.28",
+      "token": "0.4.28:1791310586635606100",
+      "startedAt": 1791310878.874945,
+      "requests": 2,
+      "inflight": 0
+    },
+    "outputHashes": {
+      "STEP/design/camera_display/display_holder.step": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "3MF/design/camera_display/display_holder.3mf": "483b055fbf2edfb462d212fef520763945557a4ff6d5c2d37f25e1589d3feddd"
+    },
+    "log": "source-daemon-fresh-holder.log"
+  },
+  {
+    "scenario": "source-daemon-current-holder",
+    "exitCode": 0,
+    "elapsedSeconds": 10.863258054,
+    "processTreePeakRssBytes": 2214359040,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "available": 2405867520,
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0
+    },
+    "guestAfter": {
+      "available": 2491305984,
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0
+    },
+    "statusBefore": {
+      "workers": [
+        {
+          "pid": 412,
+          "model": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "busy": false,
+          "extra": false,
+          "jobs": 1
+        },
+        {
+          "pid": 418,
+          "model": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py",
+          "busy": false,
+          "extra": false,
+          "jobs": 1
+        }
+      ],
+      "spares": 0,
+      "sparesPending": 0,
+      "sparesWanted": 0,
+      "workerLimit": 4,
+      "workersStarting": 0,
+      "workersRetiring": 0,
+      "jobsServed": 2,
+      "imports": 2,
+      "concurrent": 0,
+      "crashes": 0,
+      "recycles": 0,
+      "unbinds": 0,
+      "rejected": 0,
+      "evictions": 0,
+      "jobsRunning": {
+        "running": 0,
+        "limit": 1,
+        "queued": 0,
+        "peakRunning": 1,
+        "granted": 3,
+        "inflight": 0,
+        "coalesced": 0
+      },
+      "jobs": [
+        {
+          "id": "job-1",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/design/camera_display/display_holder.step",
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/3MF/design/camera_display/display_holder.3mf"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+            "--json"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310889.830085,
+          "updatedAt": 1791310960.6565447,
+          "finishedAt": 1791310960.3483846,
+          "exit": 0,
+          "error": null
+        },
+        {
+          "id": "job-2",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/references/active/jc4880p443c_i_w_y_community.step"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310903.953278,
+          "updatedAt": 1791310938.8342588,
+          "finishedAt": 1791310938.6877902,
+          "exit": 0,
+          "error": null
+        }
+      ],
+      "pid": 404,
+      "socket": "/tmp/cad-camera-34f1fbc4.sock",
+      "identity": "4680d82aacc5",
+      "version": "0.4.28",
+      "token": "0.4.28:1791310586635606100",
+      "startedAt": 1791310878.874945,
+      "requests": 2,
+      "inflight": 0
+    },
+    "statusAfter": {
+      "workers": [
+        {
+          "pid": 412,
+          "model": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "busy": false,
+          "extra": false,
+          "jobs": 2
+        },
+        {
+          "pid": 418,
+          "model": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py",
+          "busy": false,
+          "extra": false,
+          "jobs": 1
+        }
+      ],
+      "spares": 0,
+      "sparesPending": 0,
+      "sparesWanted": 0,
+      "workerLimit": 4,
+      "workersStarting": 0,
+      "workersRetiring": 0,
+      "jobsServed": 3,
+      "imports": 2,
+      "concurrent": 0,
+      "crashes": 0,
+      "recycles": 0,
+      "unbinds": 0,
+      "rejected": 0,
+      "evictions": 0,
+      "jobsRunning": {
+        "running": 0,
+        "limit": 1,
+        "queued": 0,
+        "peakRunning": 1,
+        "granted": 3,
+        "inflight": 0,
+        "coalesced": 0
+      },
+      "jobs": [
+        {
+          "id": "job-1",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/design/camera_display/display_holder.step",
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/3MF/design/camera_display/display_holder.3mf"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+            "--json"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310889.830085,
+          "updatedAt": 1791310960.6565447,
+          "finishedAt": 1791310960.3483846,
+          "exit": 0,
+          "error": null
+        },
+        {
+          "id": "job-2",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/references/active/jc4880p443c_i_w_y_community.step"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310903.953278,
+          "updatedAt": 1791310938.8342588,
+          "finishedAt": 1791310938.6877902,
+          "exit": 0,
+          "error": null
+        },
+        {
+          "id": "job-4",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/design/camera_display/display_holder.step",
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/3MF/design/camera_display/display_holder.3mf"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+            "--json"
+          ],
+          "state": "done",
+          "phase": null,
+          "done": null,
+          "total": null,
+          "startedAt": 1791310970.2140663,
+          "updatedAt": 1791310971.54728,
+          "finishedAt": 1791310971.547029,
+          "exit": 0,
+          "error": null
+        }
+      ],
+      "pid": 404,
+      "socket": "/tmp/cad-camera-34f1fbc4.sock",
+      "identity": "4680d82aacc5",
+      "version": "0.4.28",
+      "token": "0.4.28:1791310586635606100",
+      "startedAt": 1791310878.874945,
+      "requests": 3,
+      "inflight": 0
+    },
+    "outputHashes": {
+      "STEP/design/camera_display/display_holder.step": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "3MF/design/camera_display/display_holder.3mf": "483b055fbf2edfb462d212fef520763945557a4ff6d5c2d37f25e1589d3feddd"
+    },
+    "log": "source-daemon-current-holder.log"
+  },
+  {
+    "scenario": "source-daemon-forced-warm-holder",
+    "exitCode": 0,
+    "elapsedSeconds": 22.594890884999998,
+    "processTreePeakRssBytes": 2266013696,
+    "sampleIntervalSeconds": 0.1,
+    "guestBefore": {
+      "available": 2491293696,
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0
+    },
+    "guestAfter": {
+      "available": 2447138816,
+      "oomKill": 0,
+      "swapIn": 0,
+      "swapOut": 0,
+      "swapUsed": 0
+    },
+    "statusBefore": {
+      "workers": [
+        {
+          "pid": 412,
+          "model": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "busy": false,
+          "extra": false,
+          "jobs": 2
+        },
+        {
+          "pid": 418,
+          "model": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py",
+          "busy": false,
+          "extra": false,
+          "jobs": 1
+        }
+      ],
+      "spares": 0,
+      "sparesPending": 0,
+      "sparesWanted": 0,
+      "workerLimit": 4,
+      "workersStarting": 0,
+      "workersRetiring": 0,
+      "jobsServed": 3,
+      "imports": 2,
+      "concurrent": 0,
+      "crashes": 0,
+      "recycles": 0,
+      "unbinds": 0,
+      "rejected": 0,
+      "evictions": 0,
+      "jobsRunning": {
+        "running": 0,
+        "limit": 1,
+        "queued": 0,
+        "peakRunning": 1,
+        "granted": 3,
+        "inflight": 0,
+        "coalesced": 0
+      },
+      "jobs": [
+        {
+          "id": "job-1",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/design/camera_display/display_holder.step",
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/3MF/design/camera_display/display_holder.3mf"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+            "--json"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310889.830085,
+          "updatedAt": 1791310960.6565447,
+          "finishedAt": 1791310960.3483846,
+          "exit": 0,
+          "error": null
+        },
+        {
+          "id": "job-2",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/references/active/jc4880p443c_i_w_y_community.step"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310903.953278,
+          "updatedAt": 1791310938.8342588,
+          "finishedAt": 1791310938.6877902,
+          "exit": 0,
+          "error": null
+        },
+        {
+          "id": "job-4",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/design/camera_display/display_holder.step",
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/3MF/design/camera_display/display_holder.3mf"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+            "--json"
+          ],
+          "state": "done",
+          "phase": null,
+          "done": null,
+          "total": null,
+          "startedAt": 1791310970.2140663,
+          "updatedAt": 1791310971.54728,
+          "finishedAt": 1791310971.547029,
+          "exit": 0,
+          "error": null
+        }
+      ],
+      "pid": 404,
+      "socket": "/tmp/cad-camera-34f1fbc4.sock",
+      "identity": "4680d82aacc5",
+      "version": "0.4.28",
+      "token": "0.4.28:1791310586635606100",
+      "startedAt": 1791310878.874945,
+      "requests": 3,
+      "inflight": 0
+    },
+    "statusAfter": {
+      "workers": [
+        {
+          "pid": 412,
+          "model": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "busy": false,
+          "extra": false,
+          "jobs": 3
+        },
+        {
+          "pid": 418,
+          "model": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py",
+          "busy": false,
+          "extra": false,
+          "jobs": 1
+        }
+      ],
+      "spares": 0,
+      "sparesPending": 0,
+      "sparesWanted": 0,
+      "workerLimit": 4,
+      "workersStarting": 0,
+      "workersRetiring": 0,
+      "jobsServed": 4,
+      "imports": 2,
+      "concurrent": 0,
+      "crashes": 0,
+      "recycles": 0,
+      "unbinds": 0,
+      "rejected": 0,
+      "evictions": 0,
+      "jobsRunning": {
+        "running": 0,
+        "limit": 1,
+        "queued": 0,
+        "peakRunning": 1,
+        "granted": 4,
+        "inflight": 0,
+        "coalesced": 0
+      },
+      "jobs": [
+        {
+          "id": "job-1",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/design/camera_display/display_holder.step",
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/3MF/design/camera_display/display_holder.3mf"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+            "--json"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310889.830085,
+          "updatedAt": 1791310960.6565447,
+          "finishedAt": 1791310960.3483846,
+          "exit": 0,
+          "error": null
+        },
+        {
+          "id": "job-2",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/references/active/jc4880p443c_i_w_y_community.step"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/references/active/jc4880p443c_i_w_y_community.py"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310903.953278,
+          "updatedAt": 1791310938.8342588,
+          "finishedAt": 1791310938.6877902,
+          "exit": 0,
+          "error": null
+        },
+        {
+          "id": "job-4",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/design/camera_display/display_holder.step",
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/3MF/design/camera_display/display_holder.3mf"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+            "--json"
+          ],
+          "state": "done",
+          "phase": null,
+          "done": null,
+          "total": null,
+          "startedAt": 1791310970.2140663,
+          "updatedAt": 1791310971.54728,
+          "finishedAt": 1791310971.547029,
+          "exit": 0,
+          "error": null
+        },
+        {
+          "id": "job-5",
+          "tool": "run",
+          "subject": "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+          "outputs": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/STEP/design/camera_display/display_holder.step",
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/3MF/design/camera_display/display_holder.3mf"
+          ],
+          "argv": [
+            "/mnt/c/Users/srnew/source/repos/text-to-cad/models/camera-iteration-validation/project/cad/src/design/camera_display/display_holder.py",
+            "--json",
+            "--force"
+          ],
+          "state": "done",
+          "phase": "Writing outputs",
+          "done": null,
+          "total": null,
+          "startedAt": 1791310980.5886753,
+          "updatedAt": 1791310994.1362362,
+          "finishedAt": 1791310994.0586705,
+          "exit": 0,
+          "error": null
+        }
+      ],
+      "pid": 404,
+      "socket": "/tmp/cad-camera-34f1fbc4.sock",
+      "identity": "4680d82aacc5",
+      "version": "0.4.28",
+      "token": "0.4.28:1791310586635606100",
+      "startedAt": 1791310878.874945,
+      "requests": 4,
+      "inflight": 0
+    },
+    "outputHashes": {
+      "STEP/design/camera_display/display_holder.step": "41ab8231dd0bcbe47d9195811dbe9ce5ad534f82ba226ce95439be84ef4cac9d",
+      "3MF/design/camera_display/display_holder.3mf": "483b055fbf2edfb462d212fef520763945557a4ff6d5c2d37f25e1589d3feddd"
+    },
+    "log": "source-daemon-forced-warm-holder.log"
+  }
+]
